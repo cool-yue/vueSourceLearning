@@ -24,20 +24,33 @@ export function initLifecycle (vm: Component) {
   const options = vm.$options
 
   // locate first non-abstract parent
+  // 初始化Vue实例,拿到组件的options.parent
   let parent = options.parent
   if (parent && !options.abstract) {
+    // 如果有parent并且options.abstract为false
+    // 就循环找到找parent.$parent,只到abstract为false,这时就定位到第一个非抽象的parent了
     while (parent.$options.abstract && parent.$parent) {
       parent = parent.$parent
     }
+    // 然后把parent的$children属性里面压入当前组件
     parent.$children.push(vm)
   }
-
+// 在组件上设置$parent
   vm.$parent = parent
+// 如果parent存在就把parent.$root给vm.$root
+// 没有parent,也就是跟组件,就把自身给$parent
   vm.$root = parent ? parent.$root : vm
 
+// 初始化vm的$children属性,它是一个数组
   vm.$children = []
+// 初始化一个$refs属性
   vm.$refs = {}
-
+// 初始化_watcher = null
+// 初始化_inactive = null
+// 其余的_directInactive设置为false
+// _isMounted初始化为false
+// _isDestroyed初始化为false
+// _isBeingDestroyed初始化为false
   vm._watcher = null
   vm._inactive = null
   vm._directInactive = false

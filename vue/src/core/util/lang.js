@@ -17,6 +17,8 @@ export function isReserved (str: string): boolean {
  * Define a property.
  */
 // 单纯在一个对象上定义一个属性
+// 注意第四个参数不传,那么它的默认值是undefined,undefined对应的bool值为false
+// 也就是说不传第四个参数就是在一个对象上面申明不可枚举的属性
 export function def (obj: Object, key: string, val: any, enumerable?: boolean) {
   Object.defineProperty(obj, key, {
     value: val,

@@ -21,6 +21,10 @@ import { toArray } from '../util/index'
 // 这里的思想就是,对外暴露一个Vue,但是又不能随便去暴露,需要在一个use的作用域中来进行
 // 插件无法就是要绑定在Vue对象身上的一些自定义的东西
 
+// use的第一种用法就是,Vue.use(fn),这个fn是个函数直接运行,Vue的内部逻辑把Vue构造器当成第一个参数
+// use的第二种用法就是,Vue,use({install:fn}),同理Vue的内部逻辑是如果是对象就要实现一个install属性的方法,第一个参数还是Vue
+// 最后就是Vue._installedPlugins ,内部维护这一个对象,绑定到了全局,每次安装插件的时候,先判断这个函数的在不在这个数组里面,
+// 也就是同一函数是不会注册两次的,但是不同地址的2个相同的函数是可以注册2次的,因为比较只用了简单的[].indexOf来比较
 
 export function initUse (Vue: GlobalAPI) {
   Vue.use = function (plugin: Function | Object) {

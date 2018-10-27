@@ -1,7 +1,8 @@
 /* @flow */
 
-import Dep from './dep'
-import { arrayMethods } from './array'
+import Dep from './dep' // 依赖对象
+import { arrayMethods } from './array' //拿到一个具有能够通过改变数组方法来监听的方法
+// 引入工具类方法
 import {
   def,
   warn,
@@ -14,6 +15,9 @@ import {
 } from '../util/index'
 
 const arrayKeys = Object.getOwnPropertyNames(arrayMethods)
+// Object.keys或用for...in循环还会获取到原型链上的可枚举属性，不过可以使用hasOwnProperty()方法过滤掉
+// 由于上面的对象的原型就是Array.prototype,所以这里不能够用原生方法,所以这把原型链上的方法屏蔽掉
+// 用getOwnPropertyNames来屏蔽掉原型链上的属性,道格拉斯克劳福德建议for in配合hasOwnProperty来使用
 
 /**
  * By default, when a reactive property is set, the new value is
@@ -21,6 +25,8 @@ const arrayKeys = Object.getOwnPropertyNames(arrayMethods)
  * we don't want to force conversion because the value may be a nested value
  * under a frozen data structure. Converting it would defeat the optimization.
  */
+// 默认情况下一个响应数据属性被设置后,新的值也会被设置为响应式,但是,当向下传props的时候
+// 我们不想强制转换因为那个值可能有一个嵌套的值,在一个冰冻数据结构下,转化他可能会打破优化
 export const observerState = {
   shouldConvert: true
 }
@@ -31,6 +37,14 @@ export const observerState = {
  * object's property keys into getter/setters that
  * collect dependencies and dispatches updates.
  */
+// observer类附着在每一个被观察对象,一旦被附上,观察者把目标对象的属性键值转化成getters和setters
+// 这个getters和setters收集依赖然后触发更新
+// Observer类
+// 实例化必须传入至少一个值
+// 把这个值给this.value
+// 实例化一个Dep对象给this.dep
+// vmCount初始化为0,这个属性表示当前这个Ob对象有多少个实例来作为root $data?(起始数据?)
+// 在这个值上面定义个
 export class Observer {
   value: any;
   dep: Dep;
@@ -40,14 +54,27 @@ export class Observer {
     this.value = value
     this.dep = new Dep()
     this.vmCount = 0
+    // 注意这里value必须是个对象,要不然会报错,虽然这里申明的是any
+    // 在这个对象上面定义一个__ob__属性,然后把对象自己当做值
     def(value, '__ob__', this)
+    // 如果value是数组
     if (Array.isArray(value)) {
+      // 当前环境能不能用__proto__
+      // 如果有__proto__这个api就把argument赋值为hasProto
+      // 如果没有就augment就赋值为copyAugment
       const augment = hasProto
         ? protoAugment
         : copyAugment
+      // 无论怎样,这里给augment传入了3个参数
+      // 如果有__proto__属性可用,那么这里就只用前2个参数,如果没有的话就给用3个参数
+      // 第三个参数为第二参数的属性值(不包括原型链上的)数组
       augment(value, arrayMethods, arrayKeys)
+      // 一般情况下认为有__proto__,那么这里的操作就是value.__proto__ = arrayMethods;
+      // 也就是说如果value是数组,那么value的proto上面给绑定一个自定义带有拦截器的数组方法对象,而不是用原始的数组方法
       this.observeArray(value)
+      // 然后当前对象观察这个value,用observe(value[i])来观察
     } else {
+      // 如果是对象的话,就要去遍历这个对象,使用defineReactive,把这个对象上面的所有属性变成getter/setter
       this.walk(value)
     }
   }
@@ -57,6 +84,8 @@ export class Observer {
    * getter/setters. This method should only be called when
    * value type is Object.
    */
+  // 步行迅游一个对象,然后把该对象上面的每个值都转化成getters和setters
+  // 这个方法参数必须是个对象
   walk (obj: Object) {
     const keys = Object.keys(obj)
     for (let i = 0; i < keys.length; i++) {
@@ -67,6 +96,7 @@ export class Observer {
   /**
    * Observe a list of Array items.
    */
+  // 观察一个数组,也就是把数组里面的所有值遍历出来然后observe
   observeArray (items: Array<any>) {
     for (let i = 0, l = items.length; i < l; i++) {
       observe(items[i])
@@ -80,8 +110,14 @@ export class Observer {
  * Augment an target Object or Array by intercepting
  * the prototype chain using __proto__
  */
+// 把目标对象的__proto__属性设置为keys
 function protoAugment (target, src: Object, keys: any) {
   /* eslint-disable no-proto */
+  // 这么操作的影响是比如 a = {};a.__proto__ === Object.prototype
+  // 当a.__proto__ = Array.prototype的时候
+  // a -> Array.prototype -> Object.prototype
+  // a现在既是Array的实例也是Object的实例
+  // 并且toString的值为[obejct,Obejct]
   target.__proto__ = src
   /* eslint-enable no-proto */
 }
@@ -92,6 +128,9 @@ function protoAugment (target, src: Object, keys: any) {
  */
 /* istanbul ignore next */
 function copyAugment (target: Object, src: Object, keys: Array<string>) {
+  // keys是一个字符串数组
+  // 遍历这个数组,然后把值拿到
+  // 在target上面定义这个值,用defineProperty来定义不可枚举的属性
   for (let i = 0, l = keys.length; i < l; i++) {
     const key = keys[i]
     def(target, key, src[key])
@@ -158,7 +197,7 @@ export function defineReactive (
   if (property && property.configurable === false) {
     return
   }
-  // 运行到这里,表示该属性并不在obj上或者在obj上但是可配置
+  // 运行到这里,表示该属性不在obj上或者在obj上但是可配置
   // cater for pre-defined getter/setters
   // property如果存在他就是一个对象{set:,get:,enumerable,configable}类似这样一个东西
   // 那么就把getter和setter分别赋值到上面
@@ -246,10 +285,13 @@ export function set (target: Array<any> | Object, key: any, val: any): any {
     // 这里表示,后期往vue对象中插入了值,给个警告,不要给一个vue实例添加相应数据isVue会给每个vue实例给这个标志
     // $data属性里面是有__ob__属性的,该属性相当于是个观察对象,Obeserve生成的对象
     // __ob__.vmCount目前还不得知，感觉是观察的实例个数
+    /*
+    // 注释下面这段代码的原因是vscode高亮异常,不过这里也不影响看源码
     process.env.NODE_ENV !== 'production' && warn(
       'Avoid adding reactive properties to a Vue instance or its root $data ' +
       'at runtime - declare it upfront in the data option.'
     )
+    */
     return val
   }
   if (!ob) {
@@ -281,10 +323,13 @@ export function del (target: Array<any> | Object, key: any) {
   }
   const ob = (target: any).__ob__
   if (target._isVue || (ob && ob.vmCount)) {
+    /*
+    //这里加这个注释的原因是,vscode中的高亮异常,就把这里也注释掉
     process.env.NODE_ENV !== 'production' && warn(
       'Avoid deleting properties on a Vue instance or its root $data ' +
       '- just set it to null.'
     )
+    */
     return
   }
   if (!hasOwn(target, key)) {

@@ -5,6 +5,7 @@ import { noop } from 'shared/util'
 import { handleError } from './error'
 
 // can we use __proto__?
+// 能不能用__proto__属性
 export const hasProto = '__proto__' in {}
 
 // Browser environment sniffing

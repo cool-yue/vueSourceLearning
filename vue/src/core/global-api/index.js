@@ -19,8 +19,11 @@ import {
 
 export function initGlobalAPI (Vue: GlobalAPI) {
   // config
+  // 定义一个空对象
+  // 给这个函数一个get方法,get方法返回config,应该是个配置对象
   const configDef = {}
   configDef.get = () => config
+  // 在开发模式里面,要给个set函数,就是不让开发过程中去修改
   if (process.env.NODE_ENV !== 'production') {
     configDef.set = () => {
       warn(
@@ -28,11 +31,17 @@ export function initGlobalAPI (Vue: GlobalAPI) {
       )
     }
   }
+  // 然后全局对象绑定一个config
   Object.defineProperty(Vue, 'config', configDef)
 
   // exposed util methods.
   // NOTE: these are not considered part of the public API - avoid relying on
   // them unless you are aware of the risk.
+  // 引入4个方法,作为工具对象
+  // warn:警告函数,一般用在开发模式
+  // extend:扩展对象属性
+  // mergeOptions:合并属性
+  // defineReactive定义响应式属性
   Vue.util = {
     warn,
     extend,

@@ -11,14 +11,14 @@ export function initExtend (Vue: GlobalAPI) {
    * constructors" for prototypal inheritance and cache them.
    */
   // 每一个实例的构造器都有一个独一无二的cid,这个能确保为一个原型继承创建的子构造器
-  // 并且能够缓存他们
+  // 并且能够缓存他们,cid这里是一个闭包的环境变量,也就是extend
   Vue.cid = 0
   let cid = 1
 
   /**
    * Class inheritance
    */
-  // 这里的extendOptions可以认识是一组Vue实例的options,返回一个函数,及构造器
+  // 这里的extendOptions可以认识是一组Vue实例的options,返回一个函数,也就是一个vue实例的构造器
   Vue.extend = function (extendOptions: Object): Function {
     // 没有传入就设为空对象
     extendOptions = extendOptions || {}
@@ -27,6 +27,7 @@ export function initExtend (Vue: GlobalAPI) {
     // 取到Vue.cid,显然superId = 0
     const SuperId = Super.cid
     // extendOptions有没有_Ctor属性,没有就就初始化一个对象,然后赋值给cachedCtors
+    // 正常情况下基本是不会往extend里面放一个_Ctor属性
     const cachedCtors = extendOptions._Ctor || (extendOptions._Ctor = {})
     // cachedCtors里面有没有superId,有就返回,没有继续往下走
     if (cachedCtors[SuperId]) {
@@ -112,7 +113,11 @@ export function initExtend (Vue: GlobalAPI) {
     Sub.sealedOptions = extend({}, Sub.options)
 
     // cache constructor
-    // 缓存构造器,key为当前构造器的cid,值为构造函数
+    // 缓存构造器,key为当前构造器的cid,值为构造函数,superId第一次运行的时候,它是0,
+    // Sub有个_ctor属性这里面存入了{0:Sub}
+    // Sub是{cid:1,_ctor:{0:Sub}}
+    // 这Sub可以跟Vue一样使用,ssub = Vue.extend({options})
+    // 最后就变成了ssub:{cid:2,_ctor:{1:ssub}}
     cachedCtors[SuperId] = Sub
     // 返回这个构造器
     return Sub
