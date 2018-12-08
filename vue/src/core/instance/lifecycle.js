@@ -320,6 +320,11 @@ export function deactivateChildComponent (vm: Component, direct?: boolean) {
   }
 }
 
+// callHook埋设钩子函数，使用户能够自定义插入一些自定义行为
+// hook看起来是把同名的hook最终整合在一个数组中,相当于订阅了
+// 这些钩子，然后在组件的生命周期的过程中,埋设这些,遍历这些
+// 然后组个运行,由于这里的钩子是用户注入的,所以必要时候要给
+// 一个抛异常的机制
 export function callHook (vm: Component, hook: string) {
   const handlers = vm.$options[hook]
   if (handlers) {
