@@ -29,8 +29,11 @@ import {
 
 export const emptyNode = new VNode('', {}, [])
 
+// 5个非用户钩子
 const hooks = ['create', 'activate', 'update', 'remove', 'destroy']
 
+// 值得比,也就是同一个Vnode节点
+// 通过判断tag,isComment
 function sameVnode (a, b) {
   return (
     a.key === b.key && (
@@ -50,6 +53,8 @@ function sameVnode (a, b) {
 
 // Some browsers do not support dynamically changing type for <input>
 // so they need to be treated as different nodes
+
+// 同样的input
 function sameInputType (a, b) {
   if (a.tag !== 'input') return true
   let i
@@ -71,9 +76,9 @@ function createKeyToOldIdx (children, beginIdx, endIdx) {
 export function createPatchFunction (backend) {
   let i, j
   const cbs = {}
-
+  // nodeOps为一套dom的操作方法
   const { modules, nodeOps } = backend
-
+  // 将回调压入到cb中,并且以hook中的值为key
   for (i = 0; i < hooks.length; ++i) {
     cbs[hooks[i]] = []
     for (j = 0; j < modules.length; ++j) {
@@ -82,11 +87,12 @@ export function createPatchFunction (backend) {
       }
     }
   }
-
+// 创建一个tag = elm.tagName的空Vnode
   function emptyNodeAt (elm) {
     return new VNode(nodeOps.tagName(elm).toLowerCase(), {}, [], undefined, elm)
   }
 
+// 创建一个闭包,共享几个变量childElm，listenrs
   function createRmCb (childElm, listeners) {
     function remove () {
       if (--remove.listeners === 0) {
@@ -97,6 +103,7 @@ export function createPatchFunction (backend) {
     return remove
   }
 
+  // 移除el元素
   function removeNode (el) {
     const parent = nodeOps.parentNode(el)
     // element may have already been removed due to v-html / v-text
@@ -106,12 +113,18 @@ export function createPatchFunction (backend) {
   }
 
   let inPre = 0
+  // 创建元素
   function createElm (vnode, insertedVnodeQueue, parentElm, refElm, nested) {
+    // 是否作为根节点插入,作为transition的时候为false
     vnode.isRootInsert = !nested // for transition enter check
+    // 如果穿件component成功,就返回
     if (createComponent(vnode, insertedVnodeQueue, parentElm, refElm)) {
       return
     }
-
+    // 创建component不成功
+    // 拿到vnode的data值
+    // 拿到children的值
+    // 拿到tag的值
     const data = vnode.data
     const children = vnode.children
     const tag = vnode.tag
