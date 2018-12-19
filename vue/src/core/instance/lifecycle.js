@@ -74,6 +74,8 @@ export function lifecycleMixin (Vue: Class<Component>) {
     // based on the rendering backend used.
     if (!prevVnode) {
       // initial render
+      // 第一次更新的时候patch的第一个参数传的是vm.$el
+      // 这个时候$el是query(selector)那个元素
       vm.$el = vm.__patch__(
         vm.$el, vnode, hydrating, false /* removeOnly */,
         vm.$options._parentElm,
@@ -84,6 +86,7 @@ export function lifecycleMixin (Vue: Class<Component>) {
       vm.$options._parentElm = vm.$options._refElm = null
     } else {
       // updates
+      // 每一次patch都会更新到vm.$el上
       vm.$el = vm.__patch__(prevVnode, vnode)
     }
     activeInstance = prevActiveInstance
