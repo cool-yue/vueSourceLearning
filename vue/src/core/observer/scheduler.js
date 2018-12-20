@@ -35,6 +35,16 @@ function resetSchedulerState () {
 /**
  * Flush both queues and run the watchers.
  */
+// queue是一个装有watcher的array,根据组件渲染的顺序父组件的id绝对会小于子组件
+// 这个id在created的时候就已经生成了,它是一个id++的操作,没new一次都会++
+// 而父子之间加载的顺序是,首先加载父组件直到beforeMounted
+// 然后加载子组件直到beforeMounted
+// 为什么会在beforeMounted这个点停住,是因为所有组件只有在mount的时候才会重新渲染
+// 新的依赖,在patch这个方法中,patch之前,并不知道数据有没有改变,例如子组件的状态改了
+// 那么就需要子组件也执行到beforeMount,
+// 在mount执行的时候,父组件里面各种子组件,他的状态都需要先mount才知道组件视图的依赖
+// 因此当所有子组件mount完之后变成mounted,父组件才会mounted
+// 而beforeMount之前的钩子，都是在初始化组件实例
 function flushSchedulerQueue () {
   flushing = true
   let watcher, id
