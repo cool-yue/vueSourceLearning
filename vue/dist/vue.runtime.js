@@ -1889,6 +1889,10 @@ function mergeVNodeHook (def, hookKey, hook) {
 
 /*  */
 
+// 在Ctor中拿到props属性
+// 同时也拿到VnodeData中的props和attrs
+// 把Ctor中的props,驼峰转化成-的形式
+// 如果attrs有同名属性,那就给警告
 function extractPropsFromVNodeData (
   data,
   Ctor,
@@ -1914,6 +1918,9 @@ function extractPropsFromVNodeData (
           attrs && hasOwn(attrs, keyInLowerCase)
         ) {
           tip(
+            // 这里要说的就是如果直接在组件上定义了showMe这个属性,并且原生属性里面
+            // 有show-me这个属性,那么相当于说原生属性跟自定义的props重名了,而由于
+            // 原生dom是大小写不敏感的,因此你需要用show-Me,而不是showMe
             "Prop \"" + keyInLowerCase + "\" is passed to component " +
             (formatComponentName(tag || Ctor)) + ", but the declared prop name is" +
             " \"" + key + "\". " +

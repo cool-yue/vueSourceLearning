@@ -105,6 +105,7 @@ export function lifecycleMixin (Vue: Class<Component>) {
     // updated in a parent's updated hook.
   }
 
+ // 强制更新,说白了就是直接调用update
   Vue.prototype.$forceUpdate = function () {
     const vm: Component = this
     if (vm._watcher) {
@@ -112,12 +113,16 @@ export function lifecycleMixin (Vue: Class<Component>) {
     }
   }
 
+ // 组件销毁的函数
   Vue.prototype.$destroy = function () {
     const vm: Component = this
+    // 如果销毁了,就不做后续的事情
     if (vm._isBeingDestroyed) {
       return
     }
+    // 没有销毁,先来个钩子beforeDestroy
     callHook(vm, 'beforeDestroy')
+    // 然后将_isBeingDestroyed = true
     vm._isBeingDestroyed = true
     // remove self from parent
     const parent = vm.$parent
@@ -125,41 +130,58 @@ export function lifecycleMixin (Vue: Class<Component>) {
       remove(parent.$children, vm)
     }
     // teardown watchers
+    // 这里的操作是在依赖中deps,找到每个dep,在dep的subs中移除当前这个watcher
     if (vm._watcher) {
       vm._watcher.teardown()
     }
     let i = vm._watchers.length
+    // vm的watchers中移除每个deps
     while (i--) {
       vm._watchers[i].teardown()
     }
     // remove reference from data ob
     // frozen object may not have observer.
+    // __ob__.vmCount减一
     if (vm._data.__ob__) {
       vm._data.__ob__.vmCount--
     }
     // call the last hook...
     vm._isDestroyed = true
     // invoke destroy hooks on current rendered tree
+    // 把Vm._vnode更新为null
+    // 并把dom移除
     vm.__patch__(vm._vnode, null)
     // fire destroyed hook
+    // 触发destroyed钩子
     callHook(vm, 'destroyed')
     // turn off all instance listeners.
     vm.$off()
     // remove __vue__ reference
+    // 把vm.$el.__vue__设置为null
     if (vm.$el) {
       vm.$el.__vue__ = null
     }
   }
 }
 
+// 著名的mount的方法
+// 真正对外保留的还要再包一层,$mount = function(el) {
+  // el = query(el)
+ // mountComponent(vm,el)
+//}
 export function mountComponent (
   vm: Component,
   el: ?Element,
   hydrating?: boolean
 ): Component {
   vm.$el = el
+  // 判断有没有render函数
   if (!vm.$options.render) {
+    // 如果没有render选项,就给一个空的VNode
     vm.$options.render = createEmptyVNode
+    // 原则上提供的template需要通过compile来生成render
+    // 这里默认是不需要去compile的,那么问题就来了,你引入的vue版本没有compile
+    // 给警告了!
     if (process.env.NODE_ENV !== 'production') {
       /* istanbul ignore if */
       if ((vm.$options.template && vm.$options.template.charAt(0) !== '#') ||
@@ -178,11 +200,18 @@ export function mountComponent (
       }
     }
   }
+  // 运行到这里证明有render函数,那么这里出发一个vm上面的钩子beforeMount
   callHook(vm, 'beforeMount')
 
+  // 定义个updateComponent,这个是watcher的回调
+  // 这个回调就是调用_update
+  // 而_update就是patch
   let updateComponent
   /* istanbul ignore if */
   if (process.env.NODE_ENV !== 'production' && config.performance && mark) {
+    // 开发模式里面埋了一些点
+    // 主要测试生成vnode要多久
+    // update要多久
     updateComponent = () => {
       const name = vm._name
       const id = vm._uid
@@ -200,11 +229,23 @@ export function mountComponent (
       measure(`${name} patch`, startTag, endTag)
     }
   } else {
+    // 生产模式只需要这一句话
+    // vm._render会触发实际上组件依赖的get,然后完成收集依赖
+    // updateComponent会在new一个Watcher之后再调用
     updateComponent = () => {
       vm._update(vm._render(), hydrating)
     }
   }
 
+  // 将vm的_watcher赋值为一个watcher,在watcher中会调用updateComponent
+  // updateComponent中会触发vm._render()，从而访问了state,从而触发
+  // get中的dep.denpend(),然后把依赖放在watcher中收集,同时把该wathcer
+  // 放入dep的subs中,如果第一次渲染,那么就会直接替换vm.$el然后更新
+  // 如果后期set之后,dep去notify,在dep的subs中遍历watcher,然后将watcher
+  // 放入一个队列中,收集完毕之后,开始flushing,调用每个watcher的run
+  // 然后watcher.run,就是调用_update,由于Vnode传入的是更新后的Vnode,patch之前
+  // vm._vnode并没有更新，然后就比较vm._vnode和Vnode,然后执行patch
+  // patch通过diff算法高效完成dom的更新
   vm._watcher = new Watcher(vm, updateComponent, noop)
   hydrating = false
 
@@ -289,6 +330,9 @@ function isInInactiveTree (vm) {
   return false
 }
 
+// 用在keep-alive中
+// 让组件active,就是设置vm._directInactive为false
+// 如果有children就一直递归下去
 export function activateChildComponent (vm: Component, direct?: boolean) {
   if (direct) {
     vm._directInactive = false
@@ -306,7 +350,9 @@ export function activateChildComponent (vm: Component, direct?: boolean) {
     callHook(vm, 'activated')
   }
 }
-
+// 用在keep-alive中
+// 让组件deactivate,设置vm._directInactive为true
+// 如果有children就一直递归下去
 export function deactivateChildComponent (vm: Component, direct?: boolean) {
   if (direct) {
     vm._directInactive = true

@@ -42,7 +42,7 @@ function resetSchedulerState () {
 // 为什么会在beforeMounted这个点停住,是因为所有组件只有在mount的时候才会重新渲染
 // 新的依赖,在patch这个方法中,patch之前,并不知道数据有没有改变,例如子组件的状态改了
 // 那么就需要子组件也执行到beforeMount,
-// 在mount执行的时候,父组件里面各种子组件,他的状态都需要先mount才知道组件视图的依赖
+// 在mount执行的时候,父组件里面各种子组件,他的状态都需要先mount才知道组件视图的依赖，才知道子组件里面的dom是怎样
 // 因此当所有子组件mount完之后变成mounted,父组件才会mounted
 // 而beforeMount之前的钩子，都是在初始化组件实例
 function flushSchedulerQueue () {
@@ -57,16 +57,27 @@ function flushSchedulerQueue () {
   //    user watchers are created before the render watcher)
   // 3. If a component is destroyed during a parent component's watcher run,
   //    its watchers can be skipped.
+
+  // 这里根据id排序一下,上面官方个3个理由
+  // 第一,父组件的created永远在child之前
+  // 第二,用户自动的watcher会在渲染时候的watcher之前运行
+  // 第三,如果一个组件在一个父组件的watcher运行中被销毁,它的watchers可以被跳过
   queue.sort((a, b) => a.id - b.id)
 
   // do not cache length because more watchers might be pushed
   // as we run existing watchers
+
+  // 这里并没有缓存length属性,因为更多的watchers可能被push进去
+  // 这里主要是在queue中执行每个watcher,并且执行一次将has里面对应的id设置为null,也就是重复的组件不会再执行了
+  //
   for (index = 0; index < queue.length; index++) {
     watcher = queue[index]
     id = watcher.id
     has[id] = null
     watcher.run()
+
     // in dev build, check and stop circular updates.
+    // 下面阻止循环更新
     if (process.env.NODE_ENV !== 'production' && has[id] != null) {
       circular[id] = (circular[id] || 0) + 1
       if (circular[id] > MAX_UPDATE_COUNT) {
@@ -87,6 +98,7 @@ function flushSchedulerQueue () {
   const activatedQueue = activatedChildren.slice()
   const updatedQueue = queue.slice()
 
+  // 重置ScheldulerState,将has,circle设置为{}, waiting = flushing = false,index = queue.length = activatedChildren.length = 0
   resetSchedulerState()
 
   // call component updated and activated hooks
@@ -100,6 +112,7 @@ function flushSchedulerQueue () {
   }
 }
 
+// 如果_isMounted了,在queue中调用每个vm上定义的updated钩子函数
 function callUpdatedHooks (queue) {
   let i = queue.length
   while (i--) {
@@ -137,7 +150,29 @@ function callActivatedHooks (queue) {
 // 把一个watcher对象放进watcher queue里面
 // 多id任务会被跳过,除非当队列被清理的时候,watch被压进去
 // 该函数,传入一个watcher对象
-//
+
+
+// 根据watcher的数量,会收集需要去更新视图的watcher
+// 并且同一个id只会push一次
+// 如果不在flushing,那么就直接push
+// 如果在flushing,从queue的队尾开始找,按顺序插入到合适的位置
+// 因为在flushing的时候,queue队列已经根据id排好顺序了
+
+// flushing的时候为什么要清空has[id] = null
+// 想像一个情况,如果一个组件在更新的时候某些状态发生了改变,那么这个组件的watcher
+// 会被推到这个queue中,但是同时这个属性改变导致子组件的改变，子组件的watcher也要被push进去
+// 但是子组件又emit了,去改变父组件另外一个状态,这个时候,父组件的wather又会被触发,但是此时
+// 父组件的state已经被子组件改了,但是这时,实际上还没开始渲染视图,但是实际上state已经改了
+// 那么由于render是依赖这些state的,实际上nextTick的一次更新,就能顾及所有的这些改变的属性
+// 第二次子组件触发父组件的元素改变的时候,原则上也会收集这个watcher,但是由于has作为了一个set
+// 过滤的作用,导致这种2次操作state的情况，只有一个watcher被压入到queue中,因为2次的id一样
+// 同时由于改变状态是同步的,nextTick去flushing queue的时候,所有的状态都是更新后的状态
+// 一次render就足够了,而如果是异步更新这个状态可能就需要多次更新视图了
+
+// 将watcher放入queue队列中
+// 并将id放入一个伪set里面,防止重复
+// 然后如果在flushing过程中有watcher进来,也会放在合适的位置
+// 再flushing的时候waiting = true
 export function queueWatcher (watcher: Watcher) {
   const id = watcher.id
   if (has[id] == null) {

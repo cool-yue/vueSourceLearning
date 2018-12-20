@@ -368,6 +368,10 @@ export function createPatchFunction (backend) {
     }
   }
 
+  // removeVnodes,移除vnodes中索引从startIdx到endIdx的vnodes
+  // vnodes可以认为是一组同级children
+  // 如果定义了tag证明是元素,remove并且触发removeHook,remove之后再触发destroy hook
+  // 如果没有tag,证明是文本节点,这个时候就操作dom,移除该dom
   function removeVnodes (parentElm, vnodes, startIdx, endIdx) {
     for (; startIdx <= endIdx; ++startIdx) {
       const ch = vnodes[startIdx]
@@ -381,7 +385,10 @@ export function createPatchFunction (backend) {
       }
     }
   }
-
+// 移除并且触发移除的hook
+// 实际上也是移除该元素的作用,如果tag有值的话
+// vnode有data的话或者提供了rm
+//
   function removeAndInvokeRemoveHook (vnode, rm) {
     if (isDef(rm) || isDef(vnode.data)) {
       let i
@@ -488,12 +495,14 @@ export function createPatchFunction (backend) {
   }
 
   function patchVnode (oldVnode, vnode, insertedVnodeQueue, removeOnly) {
+    // 如果vnode和oldVnode完全相等,那么就没有什么patch的
     if (oldVnode === vnode) {
       return
     }
-
+    // 这个2个vnode不同,那么将old公共的elm赋值给elm
     const elm = vnode.elm = oldVnode.elm
 
+    // 是一个异步占位符?这里先不管
     if (isTrue(oldVnode.isAsyncPlaceholder)) {
       if (isDef(vnode.asyncFactory.resolved)) {
         hydrate(oldVnode.elm, vnode, insertedVnodeQueue)
@@ -507,6 +516,11 @@ export function createPatchFunction (backend) {
     // note we only do this if the vnode is cloned -
     // if the new node is not cloned it means the render functions have been
     // reset by the hot-reload-api and we need to do a proper re-render.
+
+    // 如果这里vnode是个静态的,且他们的key也一样
+    // 那么就把oldVnode.compoentInstance赋值给vnode.compoentInstance
+    // 然后patch完毕,因为是静态的,所以不会变,因此只要把老的组件实例弄过来就够了
+    // 不需要进行别的操作
     if (isTrue(vnode.isStatic) &&
       isTrue(oldVnode.isStatic) &&
       vnode.key === oldVnode.key &&
@@ -516,9 +530,13 @@ export function createPatchFunction (backend) {
       return
     }
 
+    // 前面的条件都不满足,ok,现在开始patch
     let i
+    // 拿到vnode的data
     const data = vnode.data
+    // data.hook里面有没有prepatch
     if (isDef(data) && isDef(i = data.hook) && isDef(i = i.prepatch)) {
+      // 有就prepatch
       i(oldVnode, vnode)
     }
 
