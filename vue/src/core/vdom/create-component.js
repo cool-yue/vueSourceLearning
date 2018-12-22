@@ -239,6 +239,9 @@ export function createComponent (
 
   // return a placeholder vnode
   // 取到Ctor中的name,如果没有就把tag给name
+  // 这里的代码说明了,如果给一个组件name属性,会优先使用
+  // 这个name来当做比如vue-component-name
+  // 如果没取名字就默认使用标签名
   const name = Ctor.options.name || tag
   // 最后new一个VNode出来,tag名字为vue-component-name开头
   // data为合并后的data

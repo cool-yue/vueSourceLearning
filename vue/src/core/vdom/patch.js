@@ -494,6 +494,7 @@ export function createPatchFunction (backend) {
     }
   }
 
+  // 分析一下patchVnode这个方法
   function patchVnode (oldVnode, vnode, insertedVnodeQueue, removeOnly) {
     // 如果vnode和oldVnode完全相等,那么就没有什么patch的
     if (oldVnode === vnode) {
@@ -537,6 +538,7 @@ export function createPatchFunction (backend) {
     // data.hook里面有没有prepatch
     if (isDef(data) && isDef(i = data.hook) && isDef(i = i.prepatch)) {
       // 有就prepatch
+      // 这里运行prepatch
       i(oldVnode, vnode)
     }
 

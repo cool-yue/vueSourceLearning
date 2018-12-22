@@ -1930,6 +1930,7 @@ function extractPropsFromVNodeData (
           );
         }
       }
+      // 优先执行props,如果props定义了,并且存在Ctor中的属性,就把
       checkProp(res, props, key, altKey, true) ||
       checkProp(res, attrs, key, altKey, false);
     }
@@ -1937,6 +1938,11 @@ function extractPropsFromVNodeData (
   return res
 }
 
+
+// 这里首先props或者attrs有定义
+// 有定义之后,首先看他们有没有驼峰形式的属性
+// 如果有就放进res里面
+// 如果有altKey这种属性,那么就在res中定义,然后返回true
 function checkProp (
   res,
   hash,
