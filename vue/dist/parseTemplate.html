@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+<body>
+    <script src="./vue.js"></script>
+    <script>
+        console.log(Vue);
+        for(key in Vue) {
+            console.log(key);
+        }
+        var template = "<div class='aaa':class='bbb' id='mmmm' ref='dddd'><p>{{mes}}</p><div>abc</div><bb></bb><slot></slot></div>";
+ //"with(this){return _c('div',{staticClass:"aaa",class:bbb},[_c('p',[_v(_s(mes))]),_c('div',[_v("abc")]),_c('bb')],1)}"
+        var render = Vue.compile(template);
+        console.log(render);
+        console.log(render.render);
+        console.log(render.staticRenderFns[0]);
+    /*
+      Vue.prototype._o = markOnce;
+      Vue.prototype._n = toNumber;
+      Vue.prototype._s = toString;
+      Vue.prototype._l = renderList;
+      Vue.prototype._t = renderSlot;
+      Vue.prototype._q = looseEqual;
+      Vue.prototype._i = looseIndexOf;
+      Vue.prototype._m = renderStatic;
+      Vue.prototype._f = resolveFilter;
+      Vue.prototype._k = checkKeyCodes;
+      Vue.prototype._b = bindObjectProps;
+      Vue.prototype._v = createTextVNode;
+      Vue.prototype._e = createEmptyVNode;
+      Vue.prototype._u = resolveScopedSlots;
+      Vue.prototype._g = bindObjectListeners;
+    */
+    </script>
+</body>
+</html>

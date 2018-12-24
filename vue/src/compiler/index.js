@@ -21,3 +21,9 @@ export const createCompiler = createCompilerCreator(function baseCompile (
     staticRenderFns: code.staticRenderFns
   }
 })
+
+// abc
+
+var template = "<div>abc</div>"
+
+var complier = createCompiler(template);

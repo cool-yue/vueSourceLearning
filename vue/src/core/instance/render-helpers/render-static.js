@@ -5,6 +5,10 @@ import { cloneVNode, cloneVNodes } from 'core/vdom/vnode'
 /**
  * Runtime helper for rendering static trees.
  */
+
+ // 渲染静态的节点,如果_staticTrees中有就从里面取
+ // 如果对应index没有,就重新通过渲染静态函数再生成因此VNode然后给staticTrees进行缓存
+ // 最后返回这个tree
 export function renderStatic (
   index: number,
   isInFor?: boolean
@@ -28,6 +32,7 @@ export function renderStatic (
  * Runtime helper for v-once.
  * Effectively it means marking the node as static with a unique key.
  */
+// 标记每个静态节点,也就是给每个静态节点一个key,然后将isStatic赋值为true
 export function markOnce (
   tree: VNode | Array<VNode>,
   index: number,
