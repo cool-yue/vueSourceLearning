@@ -42,9 +42,17 @@ export function renderSlot (
   // 如果$scopedSlots存在的话,
   // props有值就用,没值就初始化一个{}
   // bindObject并入一个对象,再把props并入这个对象最后给props
+  // 这里的props是什么?
+  // 比如<slot :data=data></slot>,那么props为{data:data}
   // 最后执行scopedSlotFn并把这个props传进去
   // 如果前面执行返回了false就悬着返回fallback
   // fallback是一个VNode数组
+  // fallback是什么,如果<slot><div>abc</div></slot>
+  // 那么fallbakc = [_c("div",[_v("abc")])]
+  // 也就是说,如果父组件啥也没传,那么slot的输出会找这默认的fallback
+  // <slot></slot>是这样的
+  // 那么fallbakc字段会生成为null
+  // 最后<slot></slot>就什么也没渲染是一个空的[],$slots{default:[]}
   if (scopedSlotFn) { // scoped slot
     props = props || {}
     if (bindObject) {

@@ -5,6 +5,8 @@
  */
 
 // 处理普通插槽
+// 这个children,是父节点传入的东西,转化成vnode对象
+// 这个context是父组件实例
 export function resolveSlots (
   children: ?Array<VNode>,
   context: ?Component
@@ -20,7 +22,12 @@ export function resolveSlots (
   // 如果children有
   // 定义一个defaultSlot数组
   const defaultSlot = []
-  // 遍历children数组
+  // 遍历children数组,将child的内容装入到slots的这个对象中,最后返回
+  // slots的格式为
+  /* {
+    header:[vnode1,vnode2],
+    default:[vnodex]
+  }*/
   for (let i = 0, l = children.length; i < l; i++) {
     const child = children[i]
     // named slots should only be respected if the vnode was rendered in the
@@ -28,6 +35,11 @@ export function resolveSlots (
     // 取出child,也就是一个Vnode
     // child的上下文一致或者函数式上下文一致
     // 并且data存在并且data.slot也存在
+    // 这里的上下文这里要说下,如果slot传入的只是个文本节点,那么压根不需要上下文context
+    // 但是不代表说,这个文本节点没有上下文,只是说文本节点直接createTextVnode直接就创建
+    // 了,没有进行别的复杂话的东西,因为文本基本上可以认为是静态的,而如果slot渲染的是标签
+    // 比如div比如bb,原生的也好，自定义的也好,这些都有可能与父组件共享一些东西,比如:props
+    // 因此上下文一定要传进去,方便管理这个树形结构
     if ((child.context === context || child.functionalContext === context) &&
       child.data && child.data.slot != null
     ) {
@@ -69,6 +81,7 @@ export function resolveSlots (
     slots.default = defaultSlot
   }
   // 最后返回slots
+  // 这个值是给的vm.$slots
   return slots
 }
 
@@ -77,7 +90,32 @@ function isWhitespace (node: VNode): boolean {
   return node.isComment || node.text === ' '
 }
 
+
+
 // 作用域插槽
+// Vue.prototype._u = resolveScopedSlots; // 处理scopedSlot
+// 原始模板
+// "<bb><template slot-scope='slotProps'><p>{{slotProps.data}}</p></template></bb>";
+// render代码
+// "with(this){return _c('bb',{scopedSlots:_u([{key:"default",fn:function(slotProps){return [_c('p',[_v(_s(slotProps.data))])]}}])})}"
+// 可以看到这个scopedSlot这个过程,实际上虽然写在了bb里面的<template>上面,实际上呢
+// 还是作为了bb的属性,属性名为scopedSlots,实际值为一个函数的运行resolveScopedSlots
+// 参数为[{key:"default",fn:function(slotProps){return [_c('p',[_v(_s(slotProps.data))])]}}]
+// 从下面的方法可以看出,当render执行的时候,bb元素的scopedSlots属性为一个对象{default:function(slotProps) {return [_c('p',[_v(_s(slotProps.data))])]}}
+// 相当于说bb元素有copedSlots属性
+// resolveScopedSlots基本上就是把这些属性处理好然后给bb,生成一个带有scopedSlots属性的Vnode
+// 对于bb元素的话渲染话,内层肯定也有<div><slot :data="data"></slot></div>
+// 这个时候会调用_t()来渲染这个元素
+// "with(this){return _c('div',[_t("default",null,{data:data})],2)}"
+// 观察_t,可以知道第二个参数实际上是fallBack,就是slot的默认输出，但是现在slot里面什么也没写,所以这里给了null来占位
+// 观察第三个参数为{data:data},这个属性就_t的名为props属性的形参
+// 现在可以跳到renderSlot里面去看这里如何渲染
+// 第一个参数为"default",这个时候就先取出this.$scopedSlots.default,取到的其实就是那个函数
+// 可以知道this.$scopedSlots.default,其实是一个函数
+// 然后判断有没有这个函数,然后传入{data:data},即function(slotProps) {return [_c('p',[_v(_s(slotProps.a))])]}
+// 为什么可以用slotProps.data来访问数据,是因为在解析完模板之后实际上slot-scope='slotProps',中的slotProps会被生成为函数的形参
+// 而这个形参的值就是bb组件内部渲染的{data:data},这个data就是<slot :data=data></slot>
+// 最终可以在父组件中访问到传给子组件slot上面绑定的的值
 export function resolveScopedSlots (
   fns: ScopedSlotsData, // see flow/vnode
   res?: Object

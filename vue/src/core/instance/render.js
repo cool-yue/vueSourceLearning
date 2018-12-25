@@ -30,24 +30,38 @@ import { renderStatic, markOnce } from './render-helpers/render-static'
 import { bindObjectListeners } from './render-helpers/bind-object-listeners'
 import { resolveSlots, resolveScopedSlots } from './render-helpers/resolve-slots'
 
+// 实例上初始化render
 export function initRender (vm: Component) {
+  // 先把_vnode初始化为null
+  // 静态树设置为null
   vm._vnode = null // the root of the child tree
   vm._staticTrees = null
+  // 拿到父亲vnode
   const parentVnode = vm.$vnode = vm.$options._parentVnode // the placeholder node in parent tree
+  // 拿到父亲的上下文环境,这个context就是父Vue实例
+  // 由于子组件需要new,那么很多关键的东西都是需要父子之间建立关联的比如slot
+  // 父节点传入东西,子节点再去渲染,关键是要拿要到父节点才知道父节点传入了什么
   const renderContext = parentVnode && parentVnode.context
+  // _renderChildren属性
   vm.$slots = resolveSlots(vm.$options._renderChildren, renderContext)
   vm.$scopedSlots = emptyObject
   // bind the createElement fn to this instance
   // so that we get proper render context inside it.
   // args order: tag, data, children, normalizationType, alwaysNormalize
   // internal version is used by render functions compiled from templates
+
+  //vm._c上面绑定createElment,传入false
   vm._c = (a, b, c, d) => createElement(vm, a, b, c, d, false)
   // normalization is always applied for the public version, used in
   // user-written render functions.
+
+  // vm是上面绑定$createElement,传入true
   vm.$createElement = (a, b, c, d) => createElement(vm, a, b, c, d, true)
 
   // $attrs & $listeners are exposed for easier HOC creation.
   // they need to be reactive so that HOCs using them are always updated
+
+  // 拿到parentData,这个data是parent标签的一些标签类属性
   const parentData = parentVnode && parentVnode.data
   /* istanbul ignore else */
   if (process.env.NODE_ENV !== 'production') {
@@ -58,15 +72,21 @@ export function initRender (vm: Component) {
       !isUpdatingChildComponent && warn(`$listeners is readonly.`, vm)
     }, true)
   } else {
+    // 在vm上面的$attrs对象里面的属性,代理到父亲节点的attr
+    // 在vm上面的$lister对象里面的属性,代理到父节点的_parentListeners
     defineReactive(vm, '$attrs', parentData && parentData.attrs, null, true)
     defineReactive(vm, '$listeners', vm.$options._parentListeners, null, true)
   }
 }
 
+// 原型上绑定nextTick
 export function renderMixin (Vue: Class<Component>) {
   Vue.prototype.$nextTick = function (fn: Function) {
     return nextTick(fn, this)
   }
+
+
+  // 原型上绑定了_render的方法,返回一个VNode
 
   Vue.prototype._render = function (): VNode {
     const vm: Component = this

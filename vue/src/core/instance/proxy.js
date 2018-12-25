@@ -61,6 +61,7 @@ if (process.env.NODE_ENV !== 'production') {
     }
   }
 
+  // 初始化代理
   initProxy = function initProxy (vm) {
     if (hasProxy) {
       // determine which proxy handler to use

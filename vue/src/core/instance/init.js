@@ -27,14 +27,25 @@ export function initMixin (Vue: Class<Component>) {
     }
 
     // a flag to avoid this being observed
+    // obeserver会在data函数返回的对象或者data对象里面插一个__ob__
+    // 表示这是state,将_isVue插入到这里,表示这个对象首先是Vue
+    // 实例，不用去观察他，而是要观察他的data
     vm._isVue = true
     // merge options
     if (options && options._isComponent) {
       // optimize internal component instantiation
       // since dynamic options merging is pretty slow, and none of the
       // internal component options needs special treatment.
+
+      // 一般情况下这里没有_isComponent的字段
       initInternalComponent(vm, options)
     } else {
+      // 一般会运行这里
+      // 把Vm上的一些属性，Vue上面的一些属性
+      // 也就是说是全局API
+      // util set delete nextTick options use mixin cid extend component directive filter version compile
+      // options为用户传入的一些属性
+      // vm为vm上面的属性,比如_uid
       vm.$options = mergeOptions(
         resolveConstructorOptions(vm.constructor),
         options || {},
@@ -43,11 +54,14 @@ export function initMixin (Vue: Class<Component>) {
     }
     /* istanbul ignore else */
     if (process.env.NODE_ENV !== 'production') {
+      // 这里主要是方便开发用的
       initProxy(vm)
     } else {
+      // 这里在production模式下,只在vm上给一个_renderProxy,然后赋值为自己
       vm._renderProxy = vm
     }
     // expose real self
+    // _self赋值给自己
     vm._self = vm
     initLifecycle(vm) // 绑定了几个flag比如isMounted,初始化了$parent,$children,并且找到了第一个no abstract作为parent并且把他的children属性插入当前vm
     initEvents(vm) // 创建了vm._events和vm._hasHookEvent,在_parentListeners属性中取这个值，如有有值就push到vm的_events里面
@@ -82,12 +96,13 @@ export function initMixin (Vue: Class<Component>) {
 
 function initInternalComponent (vm: Component, options: InternalComponentOptions) {
   const opts = vm.$options = Object.create(vm.constructor.options)
+  // 创建一个对象,该对象的_proto_指向vm.constructor.options
   // doing this because it's faster than dynamic enumeration.
-  opts.parent = options.parent
-  opts.propsData = options.propsData
-  opts._parentVnode = options._parentVnode
-  opts._parentListeners = options._parentListeners
-  opts._renderChildren = options._renderChildren
+  opts.parent = options.parent // 拿到parent
+  opts.propsData = options.propsData // 拿到propsData
+  opts._parentVnode = options._parentVnode // 拿到父Vnode
+  opts._parentListeners = options._parentListeners // 拿到父Listener
+  opts._renderChildren = options._renderChildren//
   opts._componentTag = options._componentTag
   opts._parentElm = options._parentElm
   opts._refElm = options._refElm
