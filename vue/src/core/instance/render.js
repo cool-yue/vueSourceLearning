@@ -114,6 +114,11 @@ export function renderMixin (Vue: Class<Component>) {
     // render self
     let vnode
     try {
+      // 通常情况下一个render函数是这么来写
+      // render:function(h) {return h(参数)}
+      // 之所以这里要传入一个h,是因为在调用render的时候需要用到createELement
+      // 正好这个vm.$createElement作为参数被传入了
+      // 如果用了tempalte,complier会生成自己的模板最后直接调用
       vnode = render.call(vm._renderProxy, vm.$createElement)
     } catch (e) {
       handleError(e, vm, `render function`)

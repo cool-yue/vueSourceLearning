@@ -662,6 +662,7 @@ export function createPatchFunction (backend) {
     // 如果vnode存在tag属性那么就看
     // 是不是vue-component开头 或者 vnode的tagName 跟 node的tag一样
     // 满足上面2个条件其中一个的都返回true
+    // vue-component开头的为自定义组件,其余的为内建组件
     if (isDef(vnode.tag)) {
       return (
         vnode.tag.indexOf('vue-component') === 0 ||
@@ -691,6 +692,7 @@ export function createPatchFunction (backend) {
     let isInitialPatch = false
     // 初始化一个insertedVnodeQueue,按字面理解它是一个已插入的Vnode的队列
     // 他是一个数组
+    // 这里面存放的都是自定义组件,在render的时候,最后循环调用这个队列的mounted钩子函数
     const insertedVnodeQueue = []
 
     if (isUndef(oldVnode)) {

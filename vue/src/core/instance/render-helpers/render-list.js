@@ -8,6 +8,14 @@ import { isObject, isDef } from 'core/util/index'
 
  // 渲染List
  // 配合V-for使用
+// <div v-for='key in items'><h2>{{key}}</h2><abc></abc><div>{{info}}</div><div v-if='show'>show</div></div>
+// with(this){return _l((items),function(key){return _c('div',[_c('h2',[_v(_s(key))]),_c('abc'),_c('div',[_v(_s(info))]),(show)?_c('div',[_v("show")]):_e()],1)})}
+// v-for支持4种数据类型
+// array => 回调就是(value,index)
+// string => 回调就是(char,index)
+// number => 回调就是(1~n,index)
+// object => 回调就是(val,key,index)
+
 export function renderList (
   val: any,
   render: (

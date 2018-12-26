@@ -1403,6 +1403,11 @@ function mergeOptions (
  * This function is used because child instances need access
  * to assets defined in its ancestor chain.
  */
+
+ // 这里处理资源
+ // 在子组件渲染的时候需要用到,例如Ctor = resolveAsset(context.$options,'components',tag)
+ // Ctor 如果是组件，实际上返回的是一套组件的options选项
+ // 并且优先使用本地注册的
 function resolveAsset (
   options,
   type,
