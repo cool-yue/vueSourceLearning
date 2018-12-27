@@ -29,7 +29,7 @@ import {
 
 export const emptyNode = new VNode('', {}, [])
 
-// 5个非用户钩子
+// directive等几个钩子
 const hooks = ['create', 'activate', 'update', 'remove', 'destroy']
 
 // 值得比,也就是同一个Vnode节点
@@ -41,6 +41,8 @@ function sameVnode (a, b) {
   // 如果没有tag,那应该都是注释节点
   // 如果又不是注释节点,那么2个vnode必须要都定义data
   // 并且a和b有同样的Input type
+  // 判断是否值得比,如果元素不一样标签都不一样
+  // 那就直接替换,如果父标签一样,那么就到去updateChildren
   return (
     a.key === b.key && (
       (
@@ -59,7 +61,8 @@ function sameVnode (a, b) {
 
 // Some browsers do not support dynamically changing type for <input>
 // so they need to be treated as different nodes
-
+// 一些浏览器不支持动态地改变input的type,修改了之后,由于不支持,还是同一个元素
+// 所以一旦修改了type,就应该认为它们不是同一个node
 // 同样的input
 function sameInputType (a, b) {
   if (a.tag !== 'input') return true
@@ -69,6 +72,8 @@ function sameInputType (a, b) {
   return typeA === typeB
 }
 
+// 为old节点创建一个key的map集合,高效提高diff算法的dom操作复用
+// 而不是重新创建元素
 function createKeyToOldIdx (children, beginIdx, endIdx) {
   let i, key
   const map = {}
@@ -79,12 +84,17 @@ function createKeyToOldIdx (children, beginIdx, endIdx) {
   return map
 }
 
+// 这是一个800行的函数,最后返回一个patch方法
 export function createPatchFunction (backend) {
   let i, j
   const cbs = {}
   // nodeOps为一套dom的操作方法
+  // modules操作为ref和directive操作
   const { modules, nodeOps } = backend
   // 将回调压入到cb中,并且以hook中的值为key
+  // const hooks = ['create', 'activate', 'update', 'remove', 'destroy']
+  // 寻找绑定的ref和directive的钩子函数
+  // 例如cbs:{create:[]},这个数组存放所有的create函数
   for (i = 0; i < hooks.length; ++i) {
     cbs[hooks[i]] = []
     for (j = 0; j < modules.length; ++j) {
@@ -155,7 +165,7 @@ export function createPatchFunction (backend) {
       }
       vnode.elm = vnode.ns
         ? nodeOps.createElementNS(vnode.ns, tag)
-        : nodeOps.createElement(tag, vnode)
+        : nodeOps.createElement(tag, vnode)//这是真的创建DOM,一般会走这里,不考虑命名空间
       setScope(vnode)
 
       /* istanbul ignore if */
@@ -198,6 +208,8 @@ export function createPatchFunction (backend) {
   }
 
   // 创建组件
+  // 这个方法主要是针对非内建标签的vnode tag,然后通过其componentOptions上的Ctor
+  // 通过这个方法来创建vue实例,将这个实例化后的vue实例放在cmponentInstance上面
   function createComponent (vnode, insertedVnodeQueue, parentElm, refElm) {
     // 拿到vnode的相关属性
     let i = vnode.data
@@ -209,6 +221,7 @@ export function createPatchFunction (backend) {
       // 如果data里面有hook,并且data里面有init
       if (isDef(i = i.hook) && isDef(i = i.init)) {
         // 这个时候init(vnode)
+        // 调用componentOption上面的Ctor创建vue实例
         i(vnode, false /* hydrating */, parentElm, refElm)
       }
       // after calling the init hook, if the vnode is a child component
@@ -291,6 +304,9 @@ export function createPatchFunction (backend) {
         createElm(children[i], insertedVnodeQueue, vnode.elm, null, true)
       }
     } else if (isPrimitive(vnode.text)) {
+      // children不是array,那就没有children
+      // 在vnode中拿到text
+      // 然后插到elm中
       nodeOps.appendChild(vnode.elm, nodeOps.createTextNode(vnode.text))
     }
   }

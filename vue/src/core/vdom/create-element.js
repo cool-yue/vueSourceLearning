@@ -133,6 +133,11 @@ export function _createElement (
     'list,cell,header,loading,loading-indicator,refresh,scrollable,scroller,' +
     'video,web,embed,tabbar,tabheader,datepicker,timepicker,marquee,countdown',
     */
+    // 这里createElement做了什么事情呢?
+    // 就是对于内建标签,直接new Vnode
+    // 对于非内建标签,那就是注册过组件,会去到局部components上面去找
+    // components没找到可以到原型的全局注册组件上面去找
+    // 然后调用createComponent
     if (config.isReservedTag(tag)) {
       // platform built-in elements
       // 如果是保留标签，及平台内建标签,那么就parsePlatformTagName,这个方法做了什么后面再看
@@ -148,6 +153,10 @@ export function _createElement (
       // 这个components属性中的abc为组件的一个options选项
       // 所以如果Ctor找到了,那么Ctor会是一个import进来的组件的options选项
       // 因此这里这里继续调用CreateCompoent过程后面有说
+      // 调用到这里证明此时的vnode的tag不是内建的标签
+      // 通过拿到components中的options
+      // 只有非内建自定义组件,vnode才会被并入hook
+      // 并且vnode的tag名称是"vue-component-n-name||tag"开头
       vnode = createComponent(Ctor, data, context, children, tag)
     } else {
       // unknown or unlisted namespaced elements

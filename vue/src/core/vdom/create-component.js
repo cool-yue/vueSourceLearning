@@ -190,7 +190,7 @@ export function createComponent (
   // resolve constructor options in case global mixins are applied after
   // component constructor creation
 
-  // 处理异步组件
+  // 处理全局混入,保证全局混入能够应用
   resolveConstructorOptions(Ctor)
 
   // transform component v-model data into props & events
@@ -256,6 +256,12 @@ export function createComponent (
   return vnode
 }
 
+// 在组件上创建组件实例
+// 并将vnode.componentOptions扩展一下
+// 并入了render和staticRenderFns
+// 并入了_isComponent = true
+// parent,vnodeComponentOptions.propsData
+// 最后使用vnode.componentOptions.ctor进行实例化
 export function createComponentInstanceForVnode (
   vnode: any, // we know it's MountedComponentVNode but flow doesn't
   parent: any, // activeInstance in lifecycle state
