@@ -76,7 +76,7 @@ Vue.component("abc",{
 // with(this){return _l((items),function(key){return _c('div',[_c('h2',[_v(_s(key))]),_c('abc'),_c('div',[_v(_s(info))]),(show)?_c('div',[_v("show")]):_e()],1)})}
 
 app1 = new Vue({
-	template:"<div v-for='key in items'><h2>{{key}}</h2><abc></abc><div>{{info}}</div><div v-if='show'>show</div></div>",
+	template:"<div><h2>{{key}}</h2><abc></abc><div>{{info}}</div><div v-if='show'>show</div></div>",
 	data(){
 		return {
 			info:"root footer!",

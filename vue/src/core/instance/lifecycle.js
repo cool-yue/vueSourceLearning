@@ -25,6 +25,14 @@ export function initLifecycle (vm: Component) {
 
   // locate first non-abstract parent
   // 初始化Vue实例,拿到组件的options.parent
+  // 根组件初始化new的时候parent显然是undefined
+  // 在根组件初始化最终运行到_update的时候
+  // 会把activeInstance给自己
+  // 因为子组件里面的自定义组件需要createInstanceForVnode(options:{parent:activeInstace})
+  // 值得注意的是_parentVnode是这个自定组件的vnode
+  // 子组件在吃初始化的时候就会把取到这个parent,然后赋值给vm.$parent
+  // 然后parent.$children.push(vm)
+  // 这样父子组件就联系起来了
   let parent = options.parent
   if (parent && !options.abstract) {
     // 如果有parent并且options.abstract为false
