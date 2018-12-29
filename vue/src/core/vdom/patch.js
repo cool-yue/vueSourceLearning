@@ -134,6 +134,17 @@ export function createPatchFunction (backend) {
     // 是否作为根节点插入,作为transition的时候为false
     vnode.isRootInsert = !nested // for transition enter check
     // 如果穿件component成功,就返回
+    // 什么情况下这里createComponent会成功
+    // 就是在vnode为自定义组件的时候,换句话说就是vnode的tag为"vue-component-n-abc"
+    // 这个createComponent里面做了什么事情呢
+    // 就是调用了vnode上面的hook.init
+    // hook.init做的事情就是vnode.componentInstance = createComponentInstanceForVnode(vnode)
+    // createComponentInstanceForVnode里面会传入parent,parent为acitiveInstance,也就是上一次vm._update的vm
+    // 举个例子就是跟组件渲染的时候,内部有个abc组件,abc组件的parent就是根组件实例
+    // 如果abc下面还有自定义组件<def>那么<def>的parent就是abc,同时在initLifeCycle的时候
+    // 会把具有parent的$children.push(vm),会把具有parent的vm,vm.$parent = parent
+    // 不扯远了,后面就是调用了vnode.componentOption上面的Ctor,并且传入并入的3个属性_parentVnode就是自己
+    // parent是activeInstance,然后实例化
     if (createComponent(vnode, insertedVnodeQueue, parentElm, refElm)) {
       return
     }
@@ -185,11 +196,14 @@ export function createPatchFunction (backend) {
           if (isDef(data)) {
             invokeCreateHooks(vnode, insertedVnodeQueue)
           }
+          // 这里是个递归的过程
           insert(parentElm, vnode.elm, refElm)
         }
       } else {
         createChildren(vnode, children, insertedVnodeQueue)
         if (isDef(data)) {
+          // 这个主要针对的是ref和directive
+          // ref是在这个元素被渲染之后,把该元素的vm.componentInstance||vnode.elm放在ref对象
           invokeCreateHooks(vnode, insertedVnodeQueue)
         }
         insert(parentElm, vnode.elm, refElm)
@@ -222,6 +236,9 @@ export function createPatchFunction (backend) {
       if (isDef(i = i.hook) && isDef(i = i.init)) {
         // 这个时候init(vnode)
         // 调用componentOption上面的Ctor创建vue实例
+        // i里面是创建vue实例然后加挂载
+        // 实例放在vnode的componentInstance上面
+        // 挂载mount(undefined)
         i(vnode, false /* hydrating */, parentElm, refElm)
       }
       // after calling the init hook, if the vnode is a child component
@@ -301,6 +318,7 @@ export function createPatchFunction (backend) {
   function createChildren (vnode, children, insertedVnodeQueue) {
     if (Array.isArray(children)) {
       for (let i = 0; i < children.length; ++i) {
+        // 循环创建元素,createElement
         createElm(children[i], insertedVnodeQueue, vnode.elm, null, true)
       }
     } else if (isPrimitive(vnode.text)) {
@@ -716,6 +734,10 @@ export function createPatchFunction (backend) {
       // 如果oldVnode都没有定义
       // 那么就认为是初始化的更新,创建vnode对应的dom
       // 这里主要是针对$mount()里面没有传入值的情况,query(null)
+      // 还有这里是针对父组件内部的自定义组件
+      // 例如<div><abc></abc></div>
+      // <abc></abc>会这么来挂载mount(undefined)
+      // 初始化更新
       isInitialPatch = true
       createElm(vnode, insertedVnodeQueue, parentElm, refElm)
     } else {
