@@ -178,6 +178,8 @@ export const hyphenate = cached((str: string): string => {
 /**
  * Simple bind, faster than native
  */
+// 绑定函数执行的上下文
+// 函数中使用this,指向函数的第二个参数ctx
 export function bind (fn: Function, ctx: Object): Function {
   function boundFn (a) {
     const l: number = arguments.length

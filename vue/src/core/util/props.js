@@ -23,14 +23,23 @@ export function validateProp (
   propsData: Object,
   vm?: Component
 ): any {
+  // propOptions中拿到对应key的值
+  // propsData中没有key这个值
+  // 拿到propsData中该key对应的值
   const prop = propOptions[key]
   const absent = !hasOwn(propsData, key)
   let value = propsData[key]
   // handle boolean props
+
+  // 如果prop.type是布尔值
   if (isType(Boolean, prop.type)) {
+    // 如果propsData里面没有,并且prop里面也没有default属性
     if (absent && !hasOwn(prop, 'default')) {
+      // 就把value赋值为false
       value = false
     } else if (!isType(String, prop.type) && (value === '' || value === hyphenate(key))) {
+      // 如果prop.types部位string并且value为''或者value没有带横杠
+      // 就把value赋值为true
       value = true
     }
   }

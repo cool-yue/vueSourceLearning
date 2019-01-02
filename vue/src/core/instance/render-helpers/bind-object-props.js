@@ -12,6 +12,7 @@ import {
 /**
  * Runtime helper for merging v-bind="object" into a VNode's data.
  */
+// 绑定v-bind是object的时候
 export function bindObjectProps (
   data: any,
   tag: string,

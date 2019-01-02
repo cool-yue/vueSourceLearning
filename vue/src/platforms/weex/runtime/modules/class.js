@@ -1,5 +1,6 @@
 /* @flow */
 
+// 这些都是weex平台的,先不管吧
 import { extend } from 'shared/util'
 
 function updateClass (oldVnode: VNodeWithData, vnode: VNodeWithData) {
@@ -42,8 +43,15 @@ function updateClass (oldVnode: VNodeWithData, vnode: VNodeWithData) {
 }
 
 function getStyle (oldClassList: Array<string>, classList: Array<string>, ctx: Component): Object {
+  // style 是一个仅在weex上面注入的对象
+  // 将<style>解析然后放入weex files
   // style is a weex-only injected object
   // compiled from <style> tags in weex files
+
+  // 拿到vm实例的style属性,如果属性没有就初始化一个空对象
+  // 用classList里面的每个元素的值,作为ctx的style属性里
+  // 的key,去取值然后扩展到result上面
+  // 同样去oldClassList里面去取值,如果在新的classList里面没有就将该值设置为空字符串
   const stylesheet: any = ctx.$options.style || {}
   const result = {}
   classList.forEach(name => {

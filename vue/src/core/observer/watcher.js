@@ -106,6 +106,9 @@ export default class Watcher {
       }
     }
     // 给this.value赋值,lazy有值就给value赋值undefined,如果不是undefined就是赋值this.get()
+    // 这个lazy有什么用呢?就是当给lazy赋值为true的时候,顾名思义就是懒的意思
+    // 就是在初始化的时候并不会调用get()
+    // 通过什么后期的run来驱动
     this.value = this.lazy
       ? undefined
       : this.get()

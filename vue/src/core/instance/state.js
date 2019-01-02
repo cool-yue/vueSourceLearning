@@ -78,6 +78,8 @@ function checkOptionType (vm: Component, name: string) {
   }
 }
 // 初始化props
+// 第一个参数是vue实例,第二个参数是vm.options
+//
 function initProps (vm: Component, propsOptions: Object) {
   const propsData = vm.$options.propsData || {}
   const props = vm._props = {}
@@ -110,6 +112,8 @@ function initProps (vm: Component, propsOptions: Object) {
         }
       })
     } else {
+      // props上面的key定义成为响应式
+      // 在vm上作为_props的存在
       defineReactive(props, key, value)
     }
     // static props are already proxied on the component's prototype
@@ -198,6 +202,16 @@ function getData (data: Function, vm: Component): any {
 // 计算属性的默认属性,lazy是true
 const computedWatcherOptions = { lazy: true }
 
+// 初始化计算属性
+// 监测vm上面有没有computed属性
+// 在vm._computedWatchers上面给一个空对象
+// 遍历computed
+// 针对每个computed属性,如果是function就直接用,如果不是function就取get属性
+// 这是一个约定,否则报错
+// watchers[key]在wathcer上面把computed定义的方法给getter
+// 除了状态(data)的watcher还有_watcher
+// 这里vm上面还有_computedWatchers,并且它们都会被压入到watchers这个数组中
+// 一个计算属性就有一个watcher并且在一个名为_computedWatchers中定义
 function initComputed (vm: Component, computed: Object) {
   process.env.NODE_ENV !== 'production' && checkOptionType(vm, 'computed')
   const watchers = vm._computedWatchers = Object.create(null)
@@ -217,6 +231,7 @@ function initComputed (vm: Component, computed: Object) {
     // component-defined computed properties are already defined on the
     // component prototype. We only need to define computed properties defined
     // at instantiation here.
+    // 当vm上面没有重复的属性时候,就开始定义计算属性了
     if (!(key in vm)) {
       defineComputed(vm, key, userDef)
     } else if (process.env.NODE_ENV !== 'production') {
@@ -232,6 +247,7 @@ function initComputed (vm: Component, computed: Object) {
 // 如过定义的是函数,计算属性就是函数
 // sharedPropertyDefinition.get赋值为createComputedGetter(key);也就是通过key来创建一个getter
 // set设置为noop,也就是没有动作
+// 计算属性的get动作,实际上是运行了对应watcher中的evaluate()这个函数
 export function defineComputed (target: any, key: string, userDef: Object | Function) {
   if (typeof userDef === 'function') {
     sharedPropertyDefinition.get = createComputedGetter(key)
@@ -261,7 +277,8 @@ export function defineComputed (target: any, key: string, userDef: Object | Func
       )
     }
   }
-  // 最后在target上面定义这个key属性
+  // 最后在实例上定义这个属性,虽然是定义的是个属性
+  // 但实际上是运行的watcher上面的evaluate中的get方法
   Object.defineProperty(target, key, sharedPropertyDefinition)
 }
 
@@ -272,6 +289,11 @@ export function defineComputed (target: any, key: string, userDef: Object | Func
 // 如果watcher有值,dirty为true,就去evalute一下
 // 如果watcher有值,Dep.target存在,就调用wathcer.depend()
 // 最后return wathcer.value
+// 一个computed属性的getter
+// 产生一个闭包,锁定了key的值
+// 在computed中拿到对应的wathcer
+// 然后通过wathcer.dirty的属性来调用evaluate
+// evaluate通过调用get()来调用getter函数
 function createComputedGetter (key) {
   return function computedGetter () {
     const watcher = this._computedWatchers && this._computedWatchers[key]
@@ -295,6 +317,7 @@ function initMethods (vm: Component, methods: Object) {
   process.env.NODE_ENV !== 'production' && checkOptionType(vm, 'methods')
   const props = vm.$options.props
   for (const key in methods) {
+    // bind这里很关键,就是调整了methods的上下文,是的vm失踪都是vm实例
     vm[key] = methods[key] == null ? noop : bind(methods[key], vm)
     if (process.env.NODE_ENV !== 'production') {
       if (methods[key] == null) {
@@ -376,9 +399,14 @@ export function stateMixin (Vue: Class<Component>) {
   Object.defineProperty(Vue.prototype, '$data', dataDef)
   Object.defineProperty(Vue.prototype, '$props', propsDef)
 
+  // 全局定义一个$set方法
+  // 全局定义一个$delete方法
+  // 调用vm.$watch返回一个teardown的方法
+  // 例如teardown = vm.$watch()
+  // 然后调用teardown(),可以移除相关的依赖
   Vue.prototype.$set = set
   Vue.prototype.$delete = del
-
+  //  全局定义一个$watch方法
   Vue.prototype.$watch = function (
     expOrFn: string | Function,
     cb: any,

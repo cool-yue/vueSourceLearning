@@ -36,7 +36,7 @@ export function initRender (vm: Component) {
   // 静态树设置为null
   vm._vnode = null // the root of the child tree
   vm._staticTrees = null
-  // 拿到自定义的vnode对象(底层为非内建标签)
+  // 拿到自定义的vnode对象(tag为非内建标签)
   const parentVnode = vm.$vnode = vm.$options._parentVnode // the placeholder node in parent tree
   // 拿到父亲的上下文环境,这个context就是父Vue实例
   // 由于子组件需要new,那么很多关键的东西都是需要父子之间建立关联的比如slot
