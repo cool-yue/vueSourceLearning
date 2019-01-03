@@ -88,9 +88,11 @@ function initProps (vm: Component, propsOptions: Object) {
   const keys = vm.$options._propKeys = []
   const isRoot = !vm.$parent
   // root instance props should be converted
+  // 根组件需要被转化
   observerState.shouldConvert = isRoot
   for (const key in propsOptions) {
     keys.push(key)
+    // 从props中拿到值,要么从propsData要么从prop.default
     const value = validateProp(key, propsOptions, propsData, vm)
     /* istanbul ignore else */
     if (process.env.NODE_ENV !== 'production') {
@@ -114,6 +116,7 @@ function initProps (vm: Component, propsOptions: Object) {
     } else {
       // props上面的key定义成为响应式
       // 在vm上作为_props的存在
+      // 最后定义响应式
       defineReactive(props, key, value)
     }
     // static props are already proxied on the component's prototype
