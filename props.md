@@ -7,7 +7,7 @@ props在属于initState这一部分的一块内容，其余几个内容分别是
     // 解析为_b({attrs:{"myName":jim,"myAge":"18","my-height":177,myGod："",my-shoe:"","id":"mmmm"}},'div',ccc,false);
     // 如果没有v-bind就为with(this){return _c('div',{attrs:{"myName":jim,"myAge":"18","my-height":177,"id":"mmmm"}})}
     // 注意v-bind不可以2次声明，这样会报错
-针对上面的模板，生成的渲染函数为下面的结果，其中_b为bindObjectProps，可以看到在render模板的时候，props全部放进了attrs这个对象里面（后面会抽取出来），下面看看bindObjectProps做了什么。
+针对上面的模板，生成的渲染函数为下面的结果，其中_b为bindObjectProps，可以看到在render模板的时候，props全部放进了attrs这个对象里面（后面会抽取出来），下面看看bindObjectProps做了什么。可以知道带":"和不带":"的区别，带":"最终会解析成例如:aaa="xxx"，会解析成aaa:xxx,而不带点解析成aaa:"xxx"，最终这些都是js代码，不带引号就是变量，带引号就是字符串，所以不带":"的永远是字符串
 
      function bindObjectProps (
       data: any,
@@ -128,4 +128,23 @@ props在属于initState这一部分的一块内容，其余几个内容分别是
 3.然后遍历options中的props，然后把键push进propKeys数组,然后基于propData和options中的props来验证这个key，最后拿到值<br/>
 4.defineReactive()<br/>
 5.代理到_props<br/>
-下面看看第三步中的验证策略,主要是做了哪些工作
+下面看看第三步中的验证策略,主要是做了哪些工作<br/>
+验证通过后，然后最终返回拿到的值。验证主要依据的是用户传入的options中对props的定义与实际在标签上解析到的propsData进行比对,如上面代码所示，通过循环遍历options中的props属性，然后对每一个定义的值进行验证，首先拿到options中的prop选项，对于type是boolean的情况，对于value是undefined的情况，也就是标签上并没有传这个值，最终会拿到default的值，然后对这个值进行观察，如果在非开发的状态下，进行值的验证。通常情况下，定义个props的属性可以有以下几个类型：
+
+    type PropOptions = {
+      type: Function | Array<Function> | null,
+      default: any,
+      required: ?boolean,
+      validator: ?Function
+    };
+
+但是一般情况下就给个函数如下面这样:
+
+    props:{
+    	abc:String
+    }
+     props:{
+    	abc:[String,Array]
+    }
+props的属性如此灵活，但是这些并不需要标准化，assertProps这个函数基本上就能够判断属性是否满足，最终如果validator存在再执行validator。
+## 为什么父组件的值变化会影响子组件，而子组件变化不会影响父组件 ##

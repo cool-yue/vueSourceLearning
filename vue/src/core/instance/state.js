@@ -81,6 +81,8 @@ function checkOptionType (vm: Component, name: string) {
 // 第一个参数是vue实例,第二个参数是vm.options
 //
 function initProps (vm: Component, propsOptions: Object) {
+  // propsData就是生成vnode的时候从attrs属性中通过与props的比较
+  // 从而抽取出来的
   const propsData = vm.$options.propsData || {}
   const props = vm._props = {}
   // cache prop keys so that future props updates can iterate using Array
@@ -117,6 +119,21 @@ function initProps (vm: Component, propsOptions: Object) {
       // props上面的key定义成为响应式
       // 在vm上作为_props的存在
       // 最后定义响应式
+      // 这里为props定义响应式,是为了子组件强行去改this.aaa = xxx
+      // 然后子组件的模板进行更新
+      // 但是这难免会产一个问题就是虽然子组件更新了aaa为xxx
+      // 子组件的aaa为xxx,但是这个时候
+      // <abc :aaa="bbb"></abc>
+      // 假定父组件绑定的是个bbb变量,在子组件修改aaa,并不会去修改父组件的bbb
+      // 如果这里传入的是对象,那么就会很糟糕,那么相当于子组件修改这个属性
+      // 父组件对应的这个对象也会变,因为对象是引用
+      // 打个比方比如 aaa =  bbb = 1,现在修改aaa = 2
+      // 那么aaa的值为2,bbb的值还是1
+      // aaa = bbb = {a:1},现在修改aaa.a = 2
+      // 那么aaa 和  bbb 都是 {a:2}
+      // 在子组件直接修改props属性实际上vue也会抛出警告
+      // 虽然子组件会更新,但是依旧这个时候props的初衷就变了
+      // 父子组件的逻辑混乱,并且父子组件的值还不一致
       defineReactive(props, key, value)
     }
     // static props are already proxied on the component's prototype

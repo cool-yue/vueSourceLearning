@@ -62,6 +62,17 @@ export function initRender (vm: Component) {
   // they need to be reactive so that HOCs using them are always updated
 
   // 拿到parentData,这个data是parent标签的一些标签类属性
+  // 这里要说下context和parent和parentVnode之间的关系
+  // 比如假如有个根组件<div><abc></abc></div>
+  // 比如abc组件里面的内容是<div>我是abc</div>
+  // 根组件的vue实例在渲染patch的时候,activeInstance为自己，假定编号为1,
+  // 在渲染<abc></abc>的时候，abc也要创建vue实例，但是abc对应的vnode的context为组件1
+  // 而在渲染abc的时候创建的_parentVnode其实是<abc>的vnode,这里的理解还是那样
+  // 为什么<abc>是parentVnode是因为<abc></abc>本身不是html标签，真正渲染在页面上的
+  // 是组件里面生成render的内容,而render里面的内容会生成新的vnode,针对这个vnode的parentVnode为abc的vnode
+  // 往往传值<abc :aaa="xxx"></abc>这个aaa传入的props实际上是给组件abc中的render生成的模板用,但是属性写在
+  // 了标签<abc>上,因此这个parentVnode就是拿到这个abc标签的vnode，通过这个vnode来拿到它的data
+  // 从而去渲染传入的值
   const parentData = parentVnode && parentVnode.data
   /* istanbul ignore else */
   if (process.env.NODE_ENV !== 'production') {

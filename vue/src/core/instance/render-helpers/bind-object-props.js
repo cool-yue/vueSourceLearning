@@ -36,7 +36,9 @@ import {
  *
  */
 
-
+// 该方法是作为渲染v-bind="xxx"这个指令来用的
+// 其余情况下的全部并入attr
+// 生成component的时候根据options中定义的来抽取attr到propsData中
 
 export function bindObjectProps (
   data: any,
