@@ -148,3 +148,40 @@ props在属于initState这一部分的一块内容，其余几个内容分别是
     }
 props的属性如此灵活，但是这些并不需要标准化，assertProps这个函数基本上就能够判断属性是否满足，最终如果validator存在再执行validator。
 ## 为什么父组件的值变化会影响子组件，而子组件变化不会影响父组件 ##
+props这个属性在子组件中其实跟data没有太大区别，在子组件里面，通过this.xxx = yyy子组件依然会修改子组件的视图,但是这样会导致一个结果就是父组件的值没有变化（primitive value）,而子组件渲染的视图变化成了修改的样子,这样其实违背了props设计的初衷，当然vue会给出警告，props设计的初衷是通过父组件由子组件组成，然而子组件的一些状态是通过父组件来进行确定。下面来说说初始化以及响应式的的原理。对于以下代码:
+
+    <div><abc  :aaa = "bbb"></abc></div>
+    data（） {
+        return {
+            bbb:6
+        }
+    }
+    components:{
+        abc
+    }
+首先要明确几点首先<abc></abc>的上下文(context)属于父组件范围的,而<abc>具体怎么渲染，是属于子组件的,组件总是从父组件到子组件进行渲染，因此这句话属于父组件的template上下文，因此bbb属于父组件的变量，渲染的时候并不管abc是不是内建标签，父组件就当这是一个叫abc的标签，然后有一个属性叫aaa绑定的是一个当前环境的上下文中的bbb变量。最终父组件的渲染会变成这样：
+
+    tag:"div"
+    children:[
+        {
+            tag:"vue-component-1-abc",
+            attr:{},
+            comnponentOption:{
+                propsData:{aaa:6},
+                hook:{init：xxx,prepatch:xxx}
+            }
+        }
+    ]
+由于html的解析是一个树形结构，因此在第一次render父组件的时候with(this){_c("div",[_c("abc",attr:{"aaa":bbb})])},这个this就是父组件的上下文环境，所以当render的时候就变成了下面这样:
+
+    _c("abc",attr:{"aaa":6})
+由于abc不是保留字因此，会把abc这个标签可以看成是vue-component，会为这个vnode加上componentOptions属性，在父组件渲染的时候已经拿到了abc的options，然后通过拿到options中的props,然后与attr:{"aaa":6}进行对比，对于abc组件可能是下面这样的:
+
+    props:{
+        aaa:Number
+    }
+在props中找到了aaa，发现在attr中也有，然后就抽取attr中的aaa,attr就变成了{},把抽取的属性放到一个propsData属性中，作为componentOptions，dom更新的时候进行实例化使用。为什么父组件修改可以让子组件也修改呢？父组件的_render要执行这个_c("div",[_c("abc",attr:{"aaa":bbb})]),并且bbb属于data，当bbb修改的时候，bbb中的dep会进行notify到watcher中去执行updateComponent操作，首先要_render，那么此时加入this.bbb改成了5，那么这个render表达式就变成了下面这样:
+
+    _c("div",[_c("abc",attr:{"aaa":5})])
+
+所以基于5这个值会生成新的vnode,通过diff算法来进行dom的更新。

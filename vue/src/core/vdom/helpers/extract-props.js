@@ -9,6 +9,10 @@ import {
   formatComponentName
 } from 'core/util/index'
 
+// 这里的ctor表示子组件的options对象构建的构造函数
+// 因此通过对比标签上compile之后的属性,跟options中的props中的属性进行对比
+// 从而抽取props
+
 export function extractPropsFromVNodeData (
   data: VNodeData,
   Ctor: Class<Component>,
@@ -53,7 +57,7 @@ export function extractPropsFromVNodeData (
 // props是保留的
 // attrs是不保留的
 // 因为通过模板解析后,标签上面所有的属性都会并到attr:{}里面
-// 而本身这种原生标签是没有自定义属性的
+// 而本身这种原生标签是没有自定义属性的比如<div abc="a"></div>这个abc对于div没有什么意义
 // 而这种组件的props针对的自定义组件options中的props
 // 换句话说就是options重定义了props,在组件上写props才有意义,比如<abc :aaa="xxx"></abc>
 // 加上前期解析模板,把aaa也放入了attr:{}里面,因此实际上aaa是props的内容

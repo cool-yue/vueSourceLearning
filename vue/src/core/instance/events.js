@@ -21,6 +21,7 @@ export function initEvents (vm: Component) {
 
 let target: Component
 
+// 在vm上添加事件
 function add (event, fn, once) {
   if (once) {
     target.$once(event, fn)
@@ -29,6 +30,7 @@ function add (event, fn, once) {
   }
 }
 
+// 在vm上移除事件
 function remove (event, fn) {
   target.$off(event, fn)
 }
