@@ -9,6 +9,10 @@ import { RANGE_TOKEN, CHECKBOX_RADIO_TOKEN } from 'web/compiler/directives/model
 // it's important to place the event as the first in the array because
 // the whole point is ensuring the v-model callback gets called before
 // user-attached handlers.
+// 这里主要是处理解析模板不足以实现的功能
+// 因为v-model有一些特殊情况
+// IE中,input type = range这个只支持change事件
+//
 function normalizeEvents (on) {
   let event
   /* istanbul ignore if */
@@ -18,6 +22,8 @@ function normalizeEvents (on) {
     on[event] = [].concat(on[RANGE_TOKEN], on[event] || [])
     delete on[RANGE_TOKEN]
   }
+  // select在chrome中,v-model应该绑定click事件
+  // 在其余的浏览器中绑定change事件
   if (isDef(on[CHECKBOX_RADIO_TOKEN])) {
     // Chrome fires microtasks in between click/change, leads to #4521
     event = isChrome ? 'click' : 'change'
