@@ -593,6 +593,7 @@ export function createPatchFunction (backend) {
     // 拿到vnode的data
     const data = vnode.data
     // data.hook里面有没有prepatch
+    // 存在hook的vnode属于vue-component系列是有组件实例的
     if (isDef(data) && isDef(i = data.hook) && isDef(i = i.prepatch)) {
       // 有就prepatch
       // 这里运行prepatch

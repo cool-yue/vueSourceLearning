@@ -7,6 +7,12 @@ import { mark, measure } from 'core/util/perf'
 import Vue from './runtime/index'
 import { query } from './util/index'
 import { shouldDecodeNewlines } from './util/compat'
+
+// 这里引入了complier模块
+// complier引入了options模块
+// options模块引入了module/index
+// module/index里面引入了events,attrs,class,dom-props,style,transition几个平台相关
+// 作为解析的选项
 import { compileToFunctions } from './compiler/index'
 
 // 通过querySelector找到id相关的元素,返回innerHTML
