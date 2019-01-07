@@ -65,6 +65,8 @@ function remove (
   (_target || target).removeEventListener(event, handler, capture)
 }
 
+// 渲染dom事件的时候
+// oldVnode设置为emptyNode
 function updateDOMListeners (oldVnode: VNodeWithData, vnode: VNodeWithData) {
   if (isUndef(oldVnode.data.on) && isUndef(vnode.data.on)) {
     return

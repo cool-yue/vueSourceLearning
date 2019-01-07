@@ -29,7 +29,15 @@ import {
 
 export const emptyNode = new VNode('', {}, [])
 
-// directive等几个钩子
+// directive,event渲染等几个钩子
+// module模块中定义的几个钩子
+// 由于跟平台有关系,比如在web平台下会有window,dom的环境
+// 在服务器端渲染没有dom的环境
+// 像自定义的事件通过emit来触发,但是原生事件,归根揭底还是addEventListener来触发
+// 关键问题就是如何addEventListener是dom的方法,dom事件的渲染必须是在dom已经创建的时候
+// 所以在createEle这个方法中会执行这些钩子,从而渲染和绑定基于dom才有的一些东西
+// 其中create和update基本上是dom需要的
+// activate,remove是transition需要的
 const hooks = ['create', 'activate', 'update', 'remove', 'destroy']
 
 // 值得比,也就是同一个Vnode节点
@@ -74,6 +82,10 @@ function sameInputType (a, b) {
 
 // 为old节点创建一个key的map集合,高效提高diff算法的dom操作复用
 // 而不是重新创建元素
+// 这里创建的是key跟index进行对应
+// 加入children的dom是<div key="one"></div><div key="two"></div>
+// 那么 key为one的对应索引0
+// key为two的对应索引1
 function createKeyToOldIdx (children, beginIdx, endIdx) {
   let i, key
   const map = {}
@@ -89,12 +101,16 @@ export function createPatchFunction (backend) {
   let i, j
   const cbs = {}
   // nodeOps为一套dom的操作方法
-  // modules操作为ref和directive操作
+  // modules操作为ref,directive,events等一些操作
+  // modules会根据平台的特性来选择性加载
+  // 比如在web平台中,会有attrs,class,dom-props,events,style,transition等几个特性
+  // 每个模块都会返回一个对象
+  // {create:xxx,update:xxx}
   const { modules, nodeOps } = backend
   // 将回调压入到cb中,并且以hook中的值为key
   // const hooks = ['create', 'activate', 'update', 'remove', 'destroy']
   // 寻找绑定的ref和directive的钩子函数
-  // 例如cbs:{create:[]},这个数组存放所有的create函数
+  // 例如cbs:{create:[attr中的create,class中的create,dom-props中的create,style中的create,transitions中的create]},这个数组存放所有的create函数
   for (i = 0; i < hooks.length; ++i) {
     cbs[hooks[i]] = []
     for (j = 0; j < modules.length; ++j) {
@@ -202,10 +218,17 @@ export function createPatchFunction (backend) {
       } else {
         createChildren(vnode, children, insertedVnodeQueue)
         if (isDef(data)) {
-          // 这个主要针对的是ref和directive
+          // 这个主要针对的是ref和directive,module一些渲染,比如dom事件 属性的监听和绑定
           // ref是在这个元素被渲染之后,把该元素的vm.componentInstance||vnode.elm放在ref对象
+          // 运行到这里如果vnode有data,证明标签上面有属性或者事件或者directvie或者ref等等
+          // 那么调用modules中并入的各种create钩子函数
+          // 这一步相当于说当dom创建好了,vnode里面data有关于dom的一些属性,事件监听
+          // 需要继续去绑定和监听
           invokeCreateHooks(vnode, insertedVnodeQueue)
         }
+        // 运行到这里vnode.elm已经填入了子元素,并且已经绑定了data中应该在dom上渲染是的属性和事件
+        // 然后执行插入完成dom的渲染
+        // 这里存在各种递归的操作,最终运行到栈中最后一个insert的时候,dom渲染完毕
         insert(parentElm, vnode.elm, refElm)
       }
 
