@@ -11,6 +11,8 @@ let warn
 export const RANGE_TOKEN = '__r'
 export const CHECKBOX_RADIO_TOKEN = '__c'
 
+// 处理v-model的一些操作,基于web平台的解析工作
+
 export default function model (
   el: ASTElement,
   dir: ASTDirective,
