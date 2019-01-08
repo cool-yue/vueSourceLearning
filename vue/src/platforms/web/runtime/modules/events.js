@@ -11,8 +11,25 @@ import { RANGE_TOKEN, CHECKBOX_RADIO_TOKEN } from 'web/compiler/directives/model
 // user-attached handlers.
 // 这里主要是处理解析模板不足以实现的功能
 // 因为v-model有一些特殊情况
-// IE中,input type = range这个只支持change事件
-//
+// 比如<input type="range" v-model="abc" />
+// compile之后它变成了
+//  with(this){
+//  return _c('input',{
+//             directives:[{name:"model",rawName:"v-model",value:(aaa),expression:"aaa"}],
+//             attrs:{"type":"range"},
+//             domProps:{"value":(aaa)},
+//             on:{"__r":function($event){aaa=$event.target.value}}})}
+// 因为在解析template的时候,是纯粹的字符串解析,在那种上下文环境中,并不能判断是在IE还是在别的浏览器
+// 但是有些边界情况又要考虑到IE和非IE,针对model的一般情况是针对input事件,有些个情况不支持,于是就给
+// 个字段__r,通过运行时来判断,再给出正确的事件名称
+// 对于通常情况来说<input type='text' v-model='aaa' />
+// compile之后就变成了
+// with(this){
+//    return _c('input',{
+//               directives:[{name:"model",rawName:"v-model",value:(aaa),expression:"aaa"}],
+//               attrs:{"type":"text"},domProps:{"value":(aaa)},
+//               on:{"input":function($event){if($event.target.composing)return;aaa=$event.target.value}}})}
+// 由于type=text,各个浏览器行为一致,因此对于input这个事件无需做不同浏览器的边缘情况考虑
 function normalizeEvents (on) {
   let event
   /* istanbul ignore if */
@@ -24,6 +41,7 @@ function normalizeEvents (on) {
   }
   // select在chrome中,v-model应该绑定click事件
   // 在其余的浏览器中绑定change事件
+  // 下面的情况也一样
   if (isDef(on[CHECKBOX_RADIO_TOKEN])) {
     // Chrome fires microtasks in between click/change, leads to #4521
     event = isChrome ? 'click' : 'change'
@@ -34,6 +52,7 @@ function normalizeEvents (on) {
 
 let target: HTMLElement
 
+// add变成了addEventListener,区别于自定义事件
 function add (
   event: string,
   handler: Function,
@@ -61,7 +80,7 @@ function add (
       : capture
   )
 }
-
+// remove变成了removeEventListener,区别于自定义事件
 function remove (
   event: string,
   handler: Function,

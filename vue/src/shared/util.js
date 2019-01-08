@@ -136,6 +136,10 @@ export function hasOwn (obj: Object | Array<*>, key: string): boolean {
 /**
  * Create a cached version of a pure function.
  */
+
+ // 该方法是把一个函数计算的结果进行缓存
+ // 缓存的方式是将传入的参数作为键,计算的值作为值
+ // 每次调用的时候直接传入参数,先去判断是否能命中缓存
 export function cached<F: Function> (fn: F): F {
   const cache = Object.create(null)
   return (function cachedFn (str: string) {

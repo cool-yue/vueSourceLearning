@@ -17,7 +17,7 @@
     console.log(2)
     */
 	
-	/*
+	
 	setTimeout(_ => console.log(4))
     
     new Promise(resolve => {
@@ -42,7 +42,7 @@
       })
     })
     console.log(2)
-	*/
+
 	
 	
 	

@@ -401,6 +401,7 @@ export function createPatchFunction (backend) {
     }
   }
 
+  // 循环创建vnode[startIndx]对应的dom,插入到parentElm中并且放在refElm之前
   function addVnodes (parentElm, refElm, vnodes, startIdx, endIdx, insertedVnodeQueue) {
     for (; startIdx <= endIdx; ++startIdx) {
       createElm(vnodes[startIdx], insertedVnodeQueue, parentElm, refElm)
@@ -477,6 +478,8 @@ export function createPatchFunction (backend) {
 
   // diff算法
   function updateChildren (parentElm, oldCh, newCh, insertedVnodeQueue, removeOnly) {
+    // 拿到新老children的首尾索引
+    // 并且取到新老children的首尾vnode
     let oldStartIdx = 0
     let newStartIdx = 0
     let oldEndIdx = oldCh.length - 1
@@ -490,38 +493,89 @@ export function createPatchFunction (backend) {
     // removeOnly is a special flag used only by <transition-group>
     // to ensure removed elements stay in correct relative positions
     // during leaving transitions
-    const canMove = !removeOnly
+    // 更新之前首先要明确几点,oldVnode是有elm的,新的Vnode是没有elm的
+    // 为了减少dom的操作,新的Vnode对应的elm是通过oldVnode的elm通过diff去增量更新,而不是完全重新创建
+    // 由于oldVnode和Vnode,肯定最终vm._vnode = vnode,而抛弃oldVnode
+    // 因此oldVnode可以更改,而新的Vnode不改
+    // 老的elm给新的elm,通过比较oldVnode和Vnode来对elm增量,这样最小化更新dom
 
+    // 还有个特点,每一次为了减少复杂度,如果父元素的相关标记是一样的,才会认为这一次的children值得去diff更新
+    // 如果父元素都不一样,就不会再一个个去遍历子元素,因为很有可能是应该说大概率子元素的更新也是一个一个完全重建
+    // 这样反而效率还不高,于是针对这个情况,直接就完全createElm这个元素
+
+    // 不会for循环去遍历,只会比较首尾,为什么会比较首尾呢,因为首尾是最能影响性能的边界条件,比如abc变成了uuuyyyxxxxxxxxxxxxxxxxxxxxxxxcba,
+    // 拿第一个a,去第二个里面比,如果只是顺序进行,那么遍历到末尾才能patch这是最坏的情况
+    // 但是如果同样abc变成了uuuuuunnnndgfdavb,取到a同样很复杂,如果设置了key就会很高效,首尾相比然后没找到就取key
+    // 如果还是没找到就直接创建一个全新的元素,如果没有key也是重新创建一个新的元素,首尾的比较复杂度相比for循环从n降到了1
+    // 其次只会进行同层次的比较,这样，就不需要嵌套去遍历找节点,同样复杂度降低了
+
+    // 比较的是vnode，更新的是dom
+    // 每一次找到了对应的dom,index移位
+    const canMove = !removeOnly
+   // 循环的条件是老的起始索引不超老的尾索引并且新的起始索引不会超过新的结束索引这个很好理解，有一个超过了证明遍历遍历完了
     while (oldStartIdx <= oldEndIdx && newStartIdx <= newEndIdx) {
+      // 判断null,这个主要用在带有key的更新,一旦发现是null,说明了是用头头,尾尾,头尾都不匹配
+      // 但是key能够匹配,于是通过key取到对应的vnode索引,进行patch然后插入,然后将老节点置为null
+      // 同时如果老Vnode为null证明这里已经patch过了,因为是startIndex于是索引++
+      // 比较下个startVnode
       if (isUndef(oldStartVnode)) {
         oldStartVnode = oldCh[++oldStartIdx] // Vnode has been moved left
+        // 判断null,这个主要用在带有key的更新,同理由于是endIndex,所以索引--
       } else if (isUndef(oldEndVnode)) {
         oldEndVnode = oldCh[--oldEndIdx]
       } else if (sameVnode(oldStartVnode, newStartVnode)) {
+        // 如果是2个节点一样,头头一样
+        // 更新这2个节点,然后各自的索引++
         patchVnode(oldStartVnode, newStartVnode, insertedVnodeQueue)
         oldStartVnode = oldCh[++oldStartIdx]
         newStartVnode = newCh[++newStartIdx]
       } else if (sameVnode(oldEndVnode, newEndVnode)) {
+        // 如果末尾的2个节点一样,既尾尾一样
+        // 那么就各自减减
         patchVnode(oldEndVnode, newEndVnode, insertedVnodeQueue)
         oldEndVnode = oldCh[--oldEndIdx]
         newEndVnode = newCh[--newEndIdx]
       } else if (sameVnode(oldStartVnode, newEndVnode)) { // Vnode moved right
+        // 头尾一样
+        // dom更新全部是在oldVnode的elm上进行,因为新的vnod没有elm
+        // 更新,然后把对应的elm当前末尾节点的后面
+        // 为什么在nodeOps.nextSibling(oldEndVnode.elm)前插入?而不是直接append,原因是尾部也设置了index
+        // 尾部匹配不代表就是children最后一个元素,因为如果尾尾匹配的话，新老的endIndex会向前移,那么下一次,头尾匹配
+        // 其实是匹配的前移后的尾部,因此插入的位置实际上是这个endIndex的位置,也就是nodeOps.nextSibling(oldEndVnode.elm)
+        // 的前面,插入后前面的索引都向前移了以为,当前被插入的正好就是endIndex的位置
+        // 新老的index都会变
+        // 由于vnode的顺序没有变,随着匹配一次++或者--,加上循环条件的限定,表示vnode并不会重复操作dom
+        // 比如在这个分支里面oldStartVnode.elm已经插入到了后面
+        // 但是能匹配到这个oldStartVnode的索引已经移走了,不管是在endIndex还是startIndex
+        // 因为老的startIndex++ ,新的endIndex--
         patchVnode(oldStartVnode, newEndVnode, insertedVnodeQueue)
         canMove && nodeOps.insertBefore(parentElm, oldStartVnode.elm, nodeOps.nextSibling(oldEndVnode.elm))
         oldStartVnode = oldCh[++oldStartIdx]
         newEndVnode = newCh[--newEndIdx]
       } else if (sameVnode(oldEndVnode, newStartVnode)) { // Vnode moved left
+        // 对于尾头,跟上面同理
         patchVnode(oldEndVnode, newStartVnode, insertedVnodeQueue)
         canMove && nodeOps.insertBefore(parentElm, oldEndVnode.elm, oldStartVnode.elm)
         oldEndVnode = oldCh[--oldEndIdx]
         newStartVnode = newCh[++newStartIdx]
       } else {
+        // 运行到这里表示证明头头,尾尾,头尾,尾头都没有匹配
+        // 原则上是要根据新的vnode去更新，因此既然前面没匹配,那么就取出newStartIndex来处理
+        // 不管是新节点还能够找到,处理完这个newStartIndex后,相应的索引++
+        // 这里就要用到key和index之间的关系了,创建index到key之间的mapping，在old中拿,因为elm只有old有
+        // 同时old的vnode也是和elm对应的
         if (isUndef(oldKeyToIdx)) oldKeyToIdx = createKeyToOldIdx(oldCh, oldStartIdx, oldEndIdx)
+        // 如果有key,找到key对应的index
         idxInOld = isDef(newStartVnode.key) ? oldKeyToIdx[newStartVnode.key] : null
         if (isUndef(idxInOld)) { // New element
+          // 如果没有这个index
+          // 第一:可能是没有设置key,第二是匹配的vnode可能在中间出现,第三是根本没有这个vnode
+          // 这里统统重新创建elm,并且插入到oldStartVnode.elm的前面
+          // 还是那句话,根据新的vnode创建dom,然后插入到老的elm中
           createElm(newStartVnode, insertedVnodeQueue, parentElm, oldStartVnode.elm)
           newStartVnode = newCh[++newStartIdx]
         } else {
+          // 程序运行到这里表示通过key在oldCh中找到了节点
           elmToMove = oldCh[idxInOld]
           /* istanbul ignore if */
           if (process.env.NODE_ENV !== 'production' && !elmToMove) {
@@ -530,23 +584,44 @@ export function createPatchFunction (backend) {
               'Make sure each v-for item has a unique key.'
             )
           }
+           // 继续判断他们是否值得update
           if (sameVnode(elmToMove, newStartVnode)) {
+            // 如果值得update
+            // 那么就patch
+            // oldCh[idxInOld] = undefined,防止多余重复操作
+            // 因为前面的逻辑会通过判断如果是undefined会直接索引++
+            // 然后插入到oldStartVnode.elm的前面
             patchVnode(elmToMove, newStartVnode, insertedVnodeQueue)
             oldCh[idxInOld] = undefined
             canMove && nodeOps.insertBefore(parentElm, elmToMove.elm, oldStartVnode.elm)
             newStartVnode = newCh[++newStartIdx]
           } else {
             // same key but different element. treat as new element
+            // 运行到这里表示虽然有一样的key,但是拥有不一样的其他的东西
+            // 还是认为是新节点
+            // 于是还是会根据新的节点vnode来创建,然后插入到oldStartVnode.elm之前
             createElm(newStartVnode, insertedVnodeQueue, parentElm, oldStartVnode.elm)
             newStartVnode = newCh[++newStartIdx]
           }
         }
       }
     }
+    // 运行到这里索引可能已经变动了很多
+    // 如果oldStartIndex > oldEndIndex 表示oldVnode遍历完了
+    // 如果新的newStartIndex newEndIndex可能越界,也可能不越界,但是它们之间如果存在vnode
+    // 表示这些vnode是oldVnode中不存在的
+    // 需要为这些新的vnode创建dom,但是问题是他们应该插入到哪里呢
+    // 参照元素newChildren中的newEndindex+1这个元素
+    // 这些元素应该放在这个元素的前面
+    // 为什么呢？因为newVnode一直都没有修改过,它的顺序就是dom的顺序
+    // 而现在startIndex和endIndex之间还有vnode,那么这些vnode的elm
+    // 显然就要插入到endIndex+1这个元素的前面
     if (oldStartIdx > oldEndIdx) {
       refElm = isUndef(newCh[newEndIdx + 1]) ? null : newCh[newEndIdx + 1].elm
       addVnodes(parentElm, refElm, newCh, newStartIdx, newEndIdx, insertedVnodeQueue)
     } else if (newStartIdx > newEndIdx) {
+      // 运行到这里表示老的vnode没有遍历完,新的已经遍历完了
+      // 这时候在parentElm中去移除oldStartIndex和oldEndIndex之间对应的元素
       removeVnodes(parentElm, oldCh, oldStartIdx, oldEndIdx)
     }
   }
@@ -558,6 +633,10 @@ export function createPatchFunction (backend) {
       return
     }
     // 这个2个vnode不同,那么将old公共的elm赋值给elm
+    // 这里这么做的原因是oldVnode有elm
+    // 而新的vnode.elm没有,而通过vnode和oldVnode进行比较
+    // 从而去修改oldVnode.elm,这样通过修改oldElm从而新的elm也更新了
+    // 他们共一个引用
     const elm = vnode.elm = oldVnode.elm
 
     // 是一个异步占位符?这里先不管
@@ -576,6 +655,7 @@ export function createPatchFunction (backend) {
     // reset by the hot-reload-api and we need to do a proper re-render.
 
     // 如果这里vnode是个静态的,且他们的key也一样
+    // 静态就以为着dom是不变的,那么只需要给新的vnode加上instance就行了
     // 那么就把oldVnode.compoentInstance赋值给vnode.compoentInstance
     // 然后patch完毕,因为是静态的,所以不会变,因此只要把老的组件实例弄过来就够了
     // 不需要进行别的操作
@@ -594,33 +674,54 @@ export function createPatchFunction (backend) {
     const data = vnode.data
     // data.hook里面有没有prepatch
     // 存在hook的vnode属于vue-component系列是有组件实例的
+    // 注意这里是预更新自定义的组件的比如<abc></abc>这样的标签
+    // 因为这样的组件会比普通tag的组件复杂,有vnode的同时,还有对应的instance对应
+    // 所以有个预更新
     if (isDef(data) && isDef(i = data.hook) && isDef(i = i.prepatch)) {
       // 有就prepatch
       // 这里运行prepatch
       i(oldVnode, vnode)
     }
-
+    // prepatch做完了之后,或者是内建tag的标签更新
     const oldCh = oldVnode.children
     const ch = vnode.children
     if (isDef(data) && isPatchable(vnode)) {
+      // 这里主要是运行钩子函数
+      // 因为属于dom更新所以会牵扯到一些transition或者directive啥的
+      // 所以先把cbs中的全部的update调用一遍
+      // 然后再调用组件hook中的update
+      // 这里触发一些钩子啥的
       for (i = 0; i < cbs.update.length; ++i) cbs.update[i](oldVnode, vnode)
       if (isDef(i = data.hook) && isDef(i = i.update)) i(oldVnode, vnode)
     }
+    // 这里表示非文本vnode
     if (isUndef(vnode.text)) {
       if (isDef(oldCh) && isDef(ch)) {
+        // 如果new和old都有children,更新children
         if (oldCh !== ch) updateChildren(elm, oldCh, ch, insertedVnodeQueue, removeOnly)
       } else if (isDef(ch)) {
+        // 如果只有新的有children
+        // 同时要判断老的是个文本节点,那么先把文本设置为空
         if (isDef(oldVnode.text)) nodeOps.setTextContent(elm, '')
+        // 然后以elm作为父节点,添加vnodes
         addVnodes(elm, null, ch, 0, ch.length - 1, insertedVnodeQueue)
       } else if (isDef(oldCh)) {
+        // 如果新的没有children老的有
+        // 删除老的children
         removeVnodes(elm, oldCh, 0, oldCh.length - 1)
       } else if (isDef(oldVnode.text)) {
+        // 如果老的是文本节点
+        // 就把老的节点设置为空,因为新的vnode没有text
         nodeOps.setTextContent(elm, '')
       }
     } else if (oldVnode.text !== vnode.text) {
+      // 运行到这里表示 新老节点 都是文本节点
+      // 把文本内容设置为老节点的内容
       nodeOps.setTextContent(elm, vnode.text)
     }
     if (isDef(data)) {
+      // 如果data存在就去寻找组件的postpatch钩子
+      // 然后进行钩子的调用
       if (isDef(i = data.hook) && isDef(i = i.postpatch)) i(oldVnode, vnode)
     }
   }

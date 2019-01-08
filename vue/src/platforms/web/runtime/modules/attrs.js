@@ -17,6 +17,8 @@ import {
   isFalsyAttrValue
 } from 'web/util/index'
 
+// attrs主要
+
 function updateAttrs (oldVnode: VNodeWithData, vnode: VNodeWithData) {
   const opts = vnode.componentOptions
   if (isDef(opts) && opts.Ctor.options.inheritAttrs === false) {

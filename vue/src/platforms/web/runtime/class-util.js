@@ -4,6 +4,7 @@
  * Add class with compatibility for SVG since classList is not supported on
  * SVG elements in IE
  */
+// 为SVG增加适配的class,由于在IE中SVG元素不支持classList
 export function addClass (el: HTMLElement, cls: ?string) {
   /* istanbul ignore if */
   if (!cls || !(cls = cls.trim())) {
