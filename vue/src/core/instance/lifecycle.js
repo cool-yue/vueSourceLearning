@@ -37,6 +37,8 @@ export function initLifecycle (vm: Component) {
   if (parent && !options.abstract) {
     // 如果有parent并且options.abstract为false
     // 就循环找到找parent.$parent,只到abstract为false,这时就定位到第一个非抽象的parent了
+    // 什么是抽象组件例如<keep-live><transition>他们不能当真正的父组件
+    // 因为它们不渲染,它们基本上只当做一个标志,来处理被它们包裹的元素
     while (parent.$options.abstract && parent.$parent) {
       parent = parent.$parent
     }
@@ -47,6 +49,7 @@ export function initLifecycle (vm: Component) {
   vm.$parent = parent
 // 如果parent存在就把parent.$root给vm.$root
 // 没有parent,也就是跟组件,就把自身给$parent
+// 所以根组件的$root还是自己
   vm.$root = parent ? parent.$root : vm
 
 // 初始化vm的$children属性,它是一个数组

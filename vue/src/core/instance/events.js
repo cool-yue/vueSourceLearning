@@ -17,6 +17,7 @@ export function initEvents (vm: Component) {
   if (listeners) {
     updateComponentListeners(vm, listeners)
   }
+  // 更新或者把自定义事件加入到_events中
 }
 
 let target: Component
@@ -34,6 +35,24 @@ function add (event, fn, once) {
 function remove (event, fn) {
   target.$off(event, fn)
 }
+
+// 注意这里的几个事件属于自定义事件
+// 对于native的原生事件,首先要么定义在内建标签上
+// 要么就是@click.native="xxx"
+// 要不然click不会生效
+// 内建标签由于不存在vm,因此不存在自定义事件
+// <div @click="aaa">
+// <abc @click="aaa" @click.native="bbb"></abc>
+// 注意的是abc的@click没有用,而click.native有用
+// 对于自定义组件的@,会从on抽取出来,然后变成listener
+// 对于nativeOn最终会变成on,在dom渲染之后,把这些事件绑定到dom上面
+// 在dom建立后,会调用的module模块中所有引入的create回调
+// 其中的events的create方法,就是将原生事件绑定到dom上(通过addEventListener)
+
+// 对于内建标签,由于直接通过new Vnode来生成vnode,因此data中的on就是
+// @click这样的事件,最终会通过平台,比如web来在dom渲染完成后,绑定对应的事件
+// 而在内建标签上建立nativeOn并没有什么作用
+// 没有逻辑去解析它,永远放在vnodeData的nativeOn对象中
 
 export function updateComponentListeners (
   vm: Component,

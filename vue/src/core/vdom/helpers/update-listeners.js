@@ -23,6 +23,8 @@ const normalizeEvent = cached((name: string): {
   }
 })
 
+// 这里主要产生一个闭包,在一个函数上面保存fns
+// 通过这个invoker来调用函数
 export function createFnInvoker (fns: Function | Array<Function>): Function {
   function invoker () {
     const fns = invoker.fns
@@ -39,6 +41,8 @@ export function createFnInvoker (fns: Function | Array<Function>): Function {
   invoker.fns = fns
   return invoker
 }
+
+// event会被
 
 export function updateListeners (
   on: Object,
