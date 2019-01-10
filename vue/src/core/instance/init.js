@@ -112,6 +112,9 @@ function initInternalComponent (vm: Component, options: InternalComponentOptions
   }
 }
 
+// 这里就是通过拿到祖先的options和extend options通过去重
+// 最后并入到本地的Ctor的options
+// 最后更新了option的Cotr赋值给options.components[options.name] = Ctor
 export function resolveConstructorOptions (Ctor: Class<Component>) {
   let options = Ctor.options
   if (Ctor.super) {
@@ -135,7 +138,7 @@ export function resolveConstructorOptions (Ctor: Class<Component>) {
   }
   return options
 }
-
+// 处理修改的options
 function resolveModifiedOptions (Ctor: Class<Component>): ?Object {
   let modified
   const latest = Ctor.options
@@ -150,6 +153,7 @@ function resolveModifiedOptions (Ctor: Class<Component>): ?Object {
   return modified
 }
 
+// 去重
 function dedupe (latest, extended, sealed) {
   // compare latest and sealed to ensure lifecycle hooks won't be duplicated
   // between merges

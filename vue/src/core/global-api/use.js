@@ -35,6 +35,7 @@ export function initUse (Vue: GlobalAPI) {
 
     // additional parameters
     const args = toArray(arguments, 1)
+    // 这就是install函数的第一个参数是Vue
     args.unshift(this)
     if (typeof plugin.install === 'function') {
       plugin.install.apply(plugin, args)

@@ -20,6 +20,8 @@ import {
   removeTransitionClass
 } from '../transition-util'
 
+// transition的处理
+// 作为过渡的效果,只有在运行时才能够使用,比如在browser的环境能够看到过渡,在服务端不存在过渡的
 export function enter (vnode: VNodeWithData, toggleDisplay: ?() => void) {
   const el: any = vnode.elm
 
@@ -321,6 +323,7 @@ function getHookArgumentsLength (fn: Function): boolean {
 
 function _enter (_: any, vnode: VNodeWithData) {
   if (vnode.data.show !== true) {
+    // 如果设置的show为false,就运行enter
     enter(vnode)
   }
 }

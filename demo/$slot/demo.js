@@ -23,7 +23,11 @@ Vue.component("myLi",{
 
 const app = new Vue({
     el:"#app",
-    template:"<my-li><h1 slot='header'></h1><div>I am the default</div></my-li>"
+    template:"<transition name='fade'><my-li><h1 slot='header'></h1><div>I am the default</div></my-li></transition>"
 });
 
 app.$mount(document.getElementById("app"));
+
+
+
+

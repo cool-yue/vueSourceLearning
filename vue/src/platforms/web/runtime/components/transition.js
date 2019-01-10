@@ -7,6 +7,29 @@ import { warn } from 'core/util/index'
 import { camelize, extend, isPrimitive } from 'shared/util'
 import { mergeVNodeHook, getFirstComponentChild } from 'core/vdom/helpers/index'
 
+
+// 下面看看一个transition是如何compile的
+/**
+ * `<transition name='fade'
+                v-on:before-enter="beforeEnter"
+                v-on:enter="enter"
+                v-on:after-enter="afterEnter"
+                v-on:enter-cancelled="enterCancelled"
+                v-on:before-leave="beforeLeave"
+                v-on:leave="leave"
+                v-on:after-leave="afterLeave"
+                v-on:leave-cancelled="leaveCancelled"><div>111</div></transition>`;
+ */
+/*with(this){return _c('transition',{attrs:{"name":"fade"},
+                       on:{"before-enter":beforeEnter,"enter":enter,
+                            "after-enter":afterEnter,"enter-cancelled":enterCancelled,
+                            "before-leave":beforeLeave,"leave":leave,
+                            after-leave":afterLeave,"leave-cancelled":leaveCancelled}
+                          },[_c('div',[_v("111")])])}
+*/
+
+// transition 组件
+// transition组件的一些props
 export const transitionProps = {
   name: String,
   appear: Boolean,
@@ -27,6 +50,9 @@ export const transitionProps = {
 
 // in case the child is also an abstract component, e.g. <keep-alive>
 // we want to recursively retrieve the real component to be rendered
+// 有一种情况是child依旧是一个abstract component
+// 这个时候要继续深入拿到不是抽象component为止
+// 例如<transition><keep-alive><div></div></keep-alive></transition>
 function getRealChild (vnode: ?VNode): ?VNode {
   const compOptions: ?VNodeComponentOptions = vnode && vnode.componentOptions
   if (compOptions && compOptions.Ctor.options.abstract) {
@@ -35,23 +61,31 @@ function getRealChild (vnode: ?VNode): ?VNode {
     return vnode
   }
 }
-
+// 抽取transition Data
 export function extractTransitionData (comp: Component): Object {
   const data = {}
   const options: ComponentOptions = comp.$options
   // props
+  // 在组件实例中拿到prop中的值
+  // 并且拷贝给一个data
   for (const key in options.propsData) {
     data[key] = comp[key]
   }
   // events.
   // extract listeners and pass them directly to the transition methods
+
+  // 拿到组件transition的钩子函数
+  // 也放进data中
   const listeners: ?Object = options._parentListeners
   for (const key in listeners) {
     data[camelize(key)] = listeners[key]
   }
+  // 最后返回data
   return data
 }
 
+// 如果tag里面有keep-alive
+// 返回一个keep-alive的vnode
 function placeholder (h: Function, rawChild: VNode): ?VNode {
   if (/\d-keep-alive$/.test(rawChild.tag)) {
     return h('keep-alive', {
@@ -60,6 +94,7 @@ function placeholder (h: Function, rawChild: VNode): ?VNode {
   }
 }
 
+// 找到parent vnode找里面有没有transition属性
 function hasParentTransition (vnode: VNode): ?boolean {
   while ((vnode = vnode.parent)) {
     if (vnode.data.transition) {
@@ -68,10 +103,12 @@ function hasParentTransition (vnode: VNode): ?boolean {
   }
 }
 
+// 通过tage和key共同判断是否是同一个child
 function isSameChild (child: VNode, oldChild: VNode): boolean {
   return oldChild.key === child.key && oldChild.tag === child.tag
 }
 
+// 通过判断vnode是否有isComment或者asyncFactory
 function isAsyncPlaceholder (node: VNode): boolean {
   return node.isComment && node.asyncFactory
 }
@@ -79,15 +116,18 @@ function isAsyncPlaceholder (node: VNode): boolean {
 export default {
   name: 'transition',
   props: transitionProps,
+  // 抽象组件,并需要去渲染,主需要拿到它上面的,slot,props
   abstract: true,
 
   render (h: Function) {
+    // 拿到<transition>里面的children
     let children: ?Array<VNode> = this.$options._renderChildren
     if (!children) {
       return
     }
 
     // filter out text nodes (possible whitespaces)
+    // 拿到非文本节点的vnode
     children = children.filter((c: VNode) => c.tag || isAsyncPlaceholder(c))
     /* istanbul ignore if */
     if (!children.length) {
@@ -102,7 +142,7 @@ export default {
         this.$parent
       )
     }
-
+    // transition只能用1非文本的children
     const mode: string = this.mode
 
     // warn invalid mode
@@ -138,6 +178,9 @@ export default {
     // ensure a key that is unique to the vnode type and to this transition
     // component instance. This key will be used to remove pending leaving nodes
     // during entering.
+
+    // 以下操作就是给child设置一个独一无二的key
+    // 并且加上前缀__transition
     const id: string = `__transition-${this._uid}-`
     child.key = child.key == null
       ? child.isComment
@@ -147,16 +190,19 @@ export default {
         ? (String(child.key).indexOf(id) === 0 ? child.key : id + child.key)
         : child.key
 
+    // data是一个拿到了transition的props和listener的一个对象
     const data: Object = (child.data || (child.data = {})).transition = extractTransitionData(this)
     const oldRawChild: VNode = this._vnode
     const oldChild: VNode = getRealChild(oldRawChild)
 
     // mark v-show
     // so that the transition module can hand over the control to the directive
+    // 找v-show,找了就就给show赋值为true
     if (child.data.directives && child.data.directives.some(d => d.name === 'show')) {
       child.data.show = true
     }
-
+    // 如果存在oldChild并且oldChild有data,并且old和oldchild是不一样的标签
+    // 同时也没有异步占位符,也就是说不是异步组件
     if (
       oldChild &&
       oldChild.data &&
@@ -165,10 +211,14 @@ export default {
     ) {
       // replace old child transition data with fresh one
       // important for dynamic transitions!
+
+      // 用新的更新旧的transition
       const oldData: Object = oldChild && (oldChild.data.transition = extend({}, data))
       // handle transition mode
       if (mode === 'out-in') {
         // return placeholder node and queue update when leave finishes
+        // 如果mode是离开
+        // 设置一个_leaving = true
         this._leaving = true
         mergeVNodeHook(oldData, 'afterLeave', () => {
           this._leaving = false
@@ -176,11 +226,13 @@ export default {
         })
         return placeholder(h, rawChild)
       } else if (mode === 'in-out') {
+        // 如果child是个异步的,直接返回
         if (isAsyncPlaceholder(child)) {
           return oldRawChild
         }
         let delayedLeave
         const performLeave = () => { delayedLeave() }
+        // 合并3个函数
         mergeVNodeHook(data, 'afterEnter', performLeave)
         mergeVNodeHook(data, 'enterCancelled', performLeave)
         mergeVNodeHook(oldData, 'delayLeave', leave => { delayedLeave = leave })

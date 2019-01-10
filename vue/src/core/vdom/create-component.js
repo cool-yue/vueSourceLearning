@@ -224,8 +224,8 @@ export function createComponent (
   if (isTrue(Ctor.options.abstract)) {
     // abstract components do not keep anything
     // other than props & listeners & slot
-
     // work around flow
+    // 抽象组件例如keep-alive
     const slot = data.slot
     data = {}
     if (slot) {
