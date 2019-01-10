@@ -11,6 +11,7 @@ import {
   validateProp
 } from '../util/index'
 
+// 函数式组件,没有data,没有实例
 export function createFunctionalComponent (
   Ctor: Class<Component>,
   propsData: ?Object,
@@ -32,6 +33,8 @@ export function createFunctionalComponent (
   // gets a unique context - this is necessary for correct named slot check
   const _context = Object.create(context)
   const h = (a, b, c, d) => createElement(_context, a, b, c, d, true)
+  // 这里是关键,这里的render的调用的第二个参数,把options里面的内容
+  // 全部放进了第二对象中
   const vnode = Ctor.options.render.call(null, h, {
     data,
     props,

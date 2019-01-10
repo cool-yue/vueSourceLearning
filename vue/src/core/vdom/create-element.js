@@ -73,6 +73,7 @@ export function _createElement (
   // 这里的操作就服从html的约束,例如在tr里面td才有效,但是td现在是个组件叫<my-td>
   // 那么正常情况下,应该使用is,把该组件的html最外层渲染成为td
   // 例如<my-td :is=xxx></my-td>
+  // 这里是处理类似于<component :is="xxx"></component>
   if (isDef(data) && isDef(data.is)) {
     tag = data.is
   }
