@@ -270,6 +270,7 @@ export function createComponentInstanceForVnode (
 ): Component {
   // 拿到vnode的componentOptions,并把其中的propsData,tag,listeners,children
   // 然后赋值给options
+  // _isComponent是这里传入的
   const vnodeComponentOptions = vnode.componentOptions
   const options: InternalComponentOptions = {
     _isComponent: true,

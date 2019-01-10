@@ -134,11 +134,17 @@ function initProps (vm: Component, propsOptions: Object) {
       // 在子组件直接修改props属性实际上vue也会抛出警告
       // 虽然子组件会更新,但是依旧这个时候props的初衷就变了
       // 父子组件的逻辑混乱,并且父子组件的值还不一致
+      // 可以认为props是对外开放的data（）,它的值可以由父组件决定
+      // 而data（）是一个组件的内部状态
       defineReactive(props, key, value)
     }
     // static props are already proxied on the component's prototype
     // during Vue.extend(). We only need to proxy props defined at
     // instantiation here.
+    //propData全部放入了一个对象中vm._props中
+    // 通过定义代理,能够vm.key访问到vm._props.key
+    // 这样之后,最终渲染render的时候
+    // 通过this.xxx就能去取到this._props.xxx
     if (!(key in vm)) {
       proxy(vm, `_props`, key)
     }
@@ -246,6 +252,15 @@ function initComputed (vm: Component, computed: Object) {
       )
     }
     // create internal watcher for the computed property.
+    // 因为是lazy所以new watcher的时候不会立即调用getter
+    // 之所以计算属性需要watcher,是因为watcher可以收集依赖
+    // 比如this.aaa + this.bbb,当把这个当做getter的时候,第一次去值
+    // 由于this.aaa本身也有自己的dep,this.bbb也有自己的dep
+    // 那么他们会被计算属性这个watcher进行收集
+    // 其中有一个修改,dep的subs中收集了这个watcher
+    // 会通知watcher进行更新,将dirty设为true从而更新值
+    // 反复访问计算属性,只要不是依赖变化,dirty都会为false
+    // 返回前一次计算的值,提高性能
     watchers[key] = new Watcher(vm, getter || noop, noop, computedWatcherOptions)
 
     // component-defined computed properties are already defined on the

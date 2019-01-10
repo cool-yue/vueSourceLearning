@@ -43,7 +43,10 @@ export function initRender (vm: Component) {
   // 父节点传入东西,子节点再去渲染,关键是要拿要到父节点才知道父节点传入了什么
   const renderContext = parentVnode && parentVnode.context
   // _renderChildren属性
+  // 最终$slots将被解析成为{defaults:[vnode,vnode],name1:[vnode],name2:[vnode]}
+  // 这种形式
   vm.$slots = resolveSlots(vm.$options._renderChildren, renderContext)
+  // 注意$scopedSlots给了一个空对象
   vm.$scopedSlots = emptyObject
   // bind the createElement fn to this instance
   // so that we get proper render context inside it.
@@ -85,6 +88,9 @@ export function initRender (vm: Component) {
   } else {
     // 在vm上面的$attrs对象里面的属性,代理到父亲节点的attr
     // 在vm上面的$lister对象里面的属性,代理到父节点的_parentListeners
+    // 这里的意思就是vm.$attrs能够访问到parentData.attrs
+    // vm.$listeners能够访问到vm.$options._parentListeners
+    // 并且他们是响应式的
     defineReactive(vm, '$attrs', parentData && parentData.attrs, null, true)
     defineReactive(vm, '$listeners', vm.$options._parentListeners, null, true)
   }

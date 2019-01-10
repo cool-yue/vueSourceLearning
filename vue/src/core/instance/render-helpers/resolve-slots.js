@@ -43,6 +43,7 @@ export function resolveSlots (
     if ((child.context === context || child.functionalContext === context) &&
       child.data && child.data.slot != null
     ) {
+      // 这里取的是具名的slot
       // 在data中取出slot的名字
       const name = child.data.slot
       // 在slots这个对象创建一个以slot名字为键,值为数组
@@ -67,6 +68,7 @@ export function resolveSlots (
       // 如果上下文不一致
       // 或者说child.data.slot没有slot
       // 那么就把child压入defaultSlot
+      // 没有名称就是default slot
       defaultSlot.push(child)
     }
   }

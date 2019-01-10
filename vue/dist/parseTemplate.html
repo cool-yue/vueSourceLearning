@@ -31,6 +31,7 @@
                                     v-on:leave="leave"
                                     v-on:after-leave="afterLeave"
                                     v-on:leave-cancelled="leaveCancelled"><div>111</div></transition>`;
+        //var template = `<abc @click="aaa" @click.native="bbb"></abc>`;
  //"with(this){return _c('div',{staticClass:"aaa",class:bbb},[_c('p',[_v(_s(mes))]),_c('div',[_v("abc")]),_c('bb')],1)}"
         var render = Vue.compile(template);
         console.log(render);
