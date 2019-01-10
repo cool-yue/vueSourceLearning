@@ -45,6 +45,22 @@ export const observerState = {
 // 实例化一个Dep对象给this.dep
 // vmCount初始化为0,这个属性表示当前这个Ob对象有多少个实例来作为root $data?(起始数据?)
 // 在这个值上面定义个
+
+// 注意observer也算是一个是属性名字叫__ob__
+// 如果一个对象中有__ob__且为Observer的实例
+// 那么表示这个对象的所有属性是响应式的
+
+// 比如data（）,在收集依赖的时候实际上__ob__也被收集
+// 到watcher中进行依赖的管理,这么做的原因在于
+// 为了方便$set方法来进行响应式的监听
+// 比如data里面有一个属性aaa:{a:1,b:2}
+// this.aaa.c = 3;
+// 并不会触发dep.notify
+// 这个时候需要用到set
+// 例如v,.$set(this.aaa,"c",3)
+// 运行这个函数的过程就是首先把c并入到this.aaa中
+// 同时将c定义为响应式
+// 最后触发dep.notify(),来进行视图的重新渲染
 export class Observer {
   value: any;
   dep: Dep;

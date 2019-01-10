@@ -25,7 +25,7 @@
 // });
 
 // Vue.component("myLi",{
-// 	template:`<li class="dx-li">	
+// 	template:`<li class="dx-li">
 //                 <slot str="你好 掘金！">
 // 	                hello juejin!
 //                 </slot>
@@ -63,17 +63,51 @@ const app = new Vue({
 	}
 });
 */
-
-Vue.component("abc",{
-	template:"<div><h2>{{t}}</h2>我是{{mes}}</div>",
+var compA = {
+	template:"<div>I am {{whatIsMe}}</div>",
 	data() {
 		return {
-			mes:"abc"
+            whatIsMe:"compA"
+		}
+	},
+	methods:{
+		bbb() {
+			console.log("bbb");
+		}
+	},
+	mounted() {
+		console.log("componentA",this.$vnode.componentOptions.Ctor.options);
+		console.log("this.$vnode.componentOptions.Ctor._base",this.$vnode.componentOptions.Ctor.options._base);
+		console.log("this.$vnode.componentOptions.Ctor.options._base === Vue",this.$vnode.componentOptions.Ctor.options._base === Vue);
+		console.log("this.$vnode.componentOptions.Ctor.super === Vue",this.$vnode.componentOptions.Ctor.super === Vue);
+		console.log("compA",this);
+	}
+}
+
+
+
+var abc = Vue.component("abc",{
+	template:"<div><h2>{{t}}</h2>我是{{mes}}<comp-a></comp-a></div>",
+	data() {
+		return {
+			mes:"abc",
+			aaa:"aaa"
 		}
 	},
 	props:["t"],
+	components:{compA},
+	methods:{
+		abc() {console.log("abc")}
+	},
+	beforeUpdate() {
+		console.log("beforeUpdate");
+	},
+	updated() {
+        console.log("updated");
+	},
 	mounted() {
-		console.log(this);
+		console.log("abc",this);
+		console.log("abc",this.constructor.options);
 	}
 })
 

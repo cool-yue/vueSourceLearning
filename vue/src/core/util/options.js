@@ -56,10 +56,16 @@ function mergeData (to: Object, from: ?Object): Object {
     toVal = to[key]
     fromVal = from[key]
     if (!hasOwn(to, key)) {
+      // 如果to中没有这个属性
+      // 就设置上面去
       set(to, key, fromVal)
     } else if (isPlainObject(toVal) && isPlainObject(fromVal)) {
+      // 如果2个值都是存在,并且都是对象
+      // 那么继续递归的合并这2个对象
       mergeData(toVal, fromVal)
     }
+    // 还有一种情况就是如果to有值不是对象,from也有这个值
+    // 这种情况就不需要处理了,因为data()已经存在这个属性了
   }
   return to
 }
@@ -85,6 +91,8 @@ export function mergeDataOrFn (
     // merged result of both functions... no need to
     // check if parentVal is a function here because
     // it has to be a function to pass previous merges.
+
+    // 分别调用2个data()函数然后进行合并
     return function mergedDataFn () {
       return mergeData(
         typeof childVal === 'function' ? childVal.call(this) : childVal,
@@ -92,6 +100,8 @@ export function mergeDataOrFn (
       )
     }
   } else if (parentVal || childVal) {
+    // 不是extand的情况？
+    // 如果传入了vm
     return function mergedInstanceDataFn () {
       // instance merge
       const instanceData = typeof childVal === 'function'
@@ -109,6 +119,8 @@ export function mergeDataOrFn (
   }
 }
 
+// data合并的策略，data定义的是个函数
+// data()
 strats.data = function (
   parentVal: any,
   childVal: any,
@@ -134,6 +146,11 @@ strats.data = function (
 /**
  * Hooks and props are merged as arrays.
  */
+// 合并钩子的策略
+// 如果child存在,parent也存在,那么就concat
+// 如果child存在parent不能在,如果child是数组,直接返回
+// 如果child不是数组,转化成数组
+// 如果childv不能在，就返回parent
 function mergeHook (
   parentVal: ?Array<Function>,
   childVal: ?Function | ?Array<Function>
@@ -147,6 +164,9 @@ function mergeHook (
     : parentVal
 }
 
+// 钩子函数的合并模式 ['beforeCreate','created','beforeMount',
+// 'mounted','beforeUpdate','updated','beforeDestroy','destroyed','activated',
+//  'deactivated']
 LIFECYCLE_HOOKS.forEach(hook => {
   strats[hook] = mergeHook
 })
@@ -158,6 +178,9 @@ LIFECYCLE_HOOKS.forEach(hook => {
  * a three-way merge between constructor options, instance
  * options and parent options.
  */
+// assets的合并策略
+// 比如components,directives
+// 这里的合并是将parent的相关属性放在原型中
 function mergeAssets (parentVal: ?Object, childVal: ?Object): Object {
   const res = Object.create(parentVal || null)
   return childVal
@@ -175,6 +198,17 @@ ASSET_TYPES.forEach(function (type) {
  * Watchers hashes should not overwrite one
  * another, so we merge them as arrays.
  */
+// watch选项的合并策略
+// 首先看定义了watch没有
+// 如果child没定义,那么就返回一个对象原型为parentVal
+// 如果有child而没有parent,那么就返回child的
+// 如果2个都存在
+// 先把parent提取出来
+// 然后遍历child,然后通过判断parent是否存在
+// 如果parent存在且不是数组,就转化成数组
+// 如果child也存在就concat起来
+// parent不存在如果child为数组就直接返回,不为数组就包装成数组返回
+// 这里parent和child并没有进行覆盖,而是以数组形式共同存在的策略
 strats.watch = function (parentVal: ?Object, childVal: ?Object): ?Object {
   // work around Firefox's Object.prototype.watch...
   if (parentVal === nativeWatch) parentVal = undefined
@@ -200,6 +234,13 @@ strats.watch = function (parentVal: ?Object, childVal: ?Object): ?Object {
 /**
  * Other object hashes.
  */
+// 合并props,methods,inject,computed的策略
+// 如果parent没有值,就用child
+// 如果parent有值,就先拿到parent的值
+// 如果child也有值,优先child的值,再次并入
+// 例如parent并入后{a:11,b:22},如果child是{b:33,c:44}
+// 合并之后就是{a:11,b:33,c:44}
+// props,methods,inject,computed满足这个策略
 strats.props =
 strats.methods =
 strats.inject =
@@ -216,7 +257,7 @@ strats.provide = mergeDataOrFn
  * Default strategy.
  */
 // 合并options内部属性的默认策略
-// 该策略是如果child对应的key没有这个值,那么就用Vue.options
+// 该策略是如果child对应的key没有这个值,那么就用parent的值,也就是child优先
 // 如果有值,就用child的值
 const defaultStrat = function (parentVal: any, childVal: any): any {
   return childVal === undefined
@@ -245,7 +286,9 @@ function checkComponents (options: Object) {
  * Ensure all props option syntax are normalized into the
  * Object-based format.
  */
-// props:['abc'] => props:{abc:}
+// 将props驼峰化
+// props:['abc'] => props:{abc:{type：null}}
+// props:{abc:String} => props:{abc:{type:String}}
 function normalizeProps (options: Object) {
   const props = options.props
   if (!props) return
@@ -317,7 +360,7 @@ export function mergeOptions (
   child: Object,
   vm?: Component
 ): Object {
-  // 检查child的属性
+  // 检查child的components属性,保证不能与内建组件和保留标签重名
   if (process.env.NODE_ENV !== 'production') {
     checkComponents(child)
   }
@@ -326,6 +369,8 @@ export function mergeOptions (
     child = child.options
   }
  // 标准化
+ // 由于extend大多时候是用户调用
+ // 因此这里需要标准化一下
   normalizeProps(child)
   normalizeInject(child)
   normalizeDirectives(child)
@@ -335,6 +380,7 @@ export function mergeOptions (
   // 如果确实有extends
   if (extendsFrom) {
     // 这里就把parent跟extends合并
+    // 见vue官方的extends示例
     parent = mergeOptions(parent, extendsFrom, vm)
   }
   // extends合并完之后,再找有没有mixins属性
@@ -349,11 +395,12 @@ export function mergeOptions (
   // 下面定义一个options对象,实际上真正的合并现在才开始,前面都在玩检查和递归
   const options = {}
   let key
-  // 遍历Vue.options中的属性,如果对应的属性child里面有,覆盖成child的
+  // 合并的规则根据字段略有不同
+  // 遍历parent中的属性将其合并
   for (key in parent) {
     mergeField(key)
   }
-  // 遍历Vue.mixin(child)中的child的属性,这一次找到child中新增的,Vue.options中没有的放入到options中
+  // 遍历child中的属性并且parent中没有的,将其合并
   for (key in child) {
     if (!hasOwn(parent, key)) {
       mergeField(key)
@@ -363,11 +410,18 @@ export function mergeOptions (
   function mergeField (key) {
     // strats是一个外面的属性,这个属性起始是个纯粹的空对象,{}
     // 因此最开始合并的时候,显然没有属性,于是就defaultStrat
+    // 对于策略,存在的策略有,strat.data,watch,props,computed,inject,methods
+    // 其中strat.data单独一个策略
+    // strat.watch一个策略
+    // strat.props,strat.computed,strat.inject,strat.methods一个策略
+    // strat.provide一个策略
     const strat = strats[key] || defaultStrat
+    // 以下的默认的合并策略
     // 这里精确合并每个属性,例如当前开辟的options = {};
     // 假如说key是"component"
     // 那么就取mixin对象中的component属性,然后再取partent中的component属性
     // 优先mixin的,如果mixin中有,返回的options中用mixin的,否则就用parent的
+    // 默认是child优先
     options[key] = strat(parent[key], child[key], vm, key)
   }
   // 最终经历各种该递归的递归,该合并extends的合并,最后返回合并后的选项

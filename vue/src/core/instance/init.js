@@ -98,6 +98,8 @@ function initInternalComponent (vm: Component, options: InternalComponentOptions
   const opts = vm.$options = Object.create(vm.constructor.options)
   // 创建一个对象,该对象的_proto_指向vm.constructor.options
   // doing this because it's faster than dynamic enumeration.
+  // 这里这么指定值的原因的就是比动态去遍历出来效率更高
+  // 有的放矢
   opts.parent = options.parent // 拿到parent
   opts.propsData = options.propsData // 拿到propsData
   opts._parentVnode = options._parentVnode // 拿到父Vnode

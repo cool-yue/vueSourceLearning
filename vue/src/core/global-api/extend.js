@@ -12,6 +12,8 @@ export function initExtend (Vue: GlobalAPI) {
    */
   // 每一个实例的构造器都有一个独一无二的cid,这个能确保为一个原型继承创建的子构造器
   // 并且能够缓存他们,cid这里是一个闭包的环境变量,也就是extend
+
+  // extend维护着一个cachedCtors的闭包,存着当前构造函数的id的
   Vue.cid = 0
   let cid = 1
 
@@ -74,10 +76,13 @@ export function initExtend (Vue: GlobalAPI) {
     // 在extend原型上面。这样避免了每次创建实例都去使用Object.defineProperty
     // 合并之后,如果Sub.options只能怪有props,就去初始化
     if (Sub.options.props) {
+      // 将props建立在Sub的prototype上面
+      // 比如Sub.prototype.xxx == 会去访问Sub.prototype._props
       initProps(Sub)
     }
     // 合并之后如果sub里面有computed,就去初始化computed
     if (Sub.options.computed) {
+      // 比如Sub.prototype.xxx == 会去访问Sub.prototype._computed
       initComputed(Sub)
     }
 
@@ -118,6 +123,7 @@ export function initExtend (Vue: GlobalAPI) {
     // Sub是{cid:1,_ctor:{0:Sub}}
     // 这Sub可以跟Vue一样使用,ssub = Vue.extend({options})
     // 最后就变成了ssub:{cid:2,_ctor:{1:ssub}}
+    // 把Sub放入缓存的,键值为SuperId
     cachedCtors[SuperId] = Sub
     // 返回这个构造器
     return Sub
