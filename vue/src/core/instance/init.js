@@ -37,7 +37,7 @@ export function initMixin (Vue: Class<Component>) {
       // since dynamic options merging is pretty slow, and none of the
       // internal component options needs special treatment.
 
-      // 一般情况下这里没有_isComponent的字段
+      // 除了根组件这里一般都运行这里的字段
       initInternalComponent(vm, options)
     } else {
       // 一般会运行这里
@@ -46,6 +46,7 @@ export function initMixin (Vue: Class<Component>) {
       // util set delete nextTick options use mixin cid extend component directive filter version compile
       // options为用户传入的一些属性
       // vm为vm上面的属性,比如_uid
+      // 根实例会运行这里
       vm.$options = mergeOptions(
         resolveConstructorOptions(vm.constructor),
         options || {},
