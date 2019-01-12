@@ -238,7 +238,8 @@ export default class Watcher {
         const oldValue = this.value
         this.value = value
         if (this.user) {
-          // 个人理解是user为是否是用户定义的属性
+          // this.user表示用户设定的watch options
+          // 在initWatch的时候进行设置
           try {
             // 也是调用一样的方法,但是用户属性加了异常控制,便于用户去调试
             this.cb.call(this.vm, value, oldValue)
@@ -247,6 +248,8 @@ export default class Watcher {
           }
         } else {
           // 这里调用回调,第一个回调传入vue实例,第一个参数为新值,第二个参数为旧值
+          // 对于视图的更新,cb为noop,也就是一个空函数,什么也不调用
+          // 如果不传这里会报错
           this.cb.call(this.vm, value, oldValue)
         }
       }
