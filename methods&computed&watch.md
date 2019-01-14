@@ -14,7 +14,28 @@ createComputedGetter():该方法创建一个计算属性的get，接受一个参
     	}
     }
     new watcher(vm,someProp,noop,{lazy:true})
-如上面的代码，someProp作为了watcher的get（）函数中主要的执行代码。前面说到过，由于计算属性的获取，是访问的该计算属性对应的wathcer的evaluate方法。下面看看evaluate方法的内容。
+    this.dirty = this.lazy
+    // 初始化dirty为true,所以在第一次初始化生成vnode的时候,this.componentedProps
+    // 会去调用computedGetter，根据dirty的值来决定是否计算
+    // 如果是dirty就evaluate,其中evaluate会去调用wathcer的get,运行计算属性定义的get,然后取到计算后的值，然后将dirty赋值为false
+    // 如果是有Dep.target,就watcher.depend
+
+如上面的代码，someProp作为了watcher的get（）函数中主要的执行代码。前面说到过，由于计算属性的获取，是访问的该计算属性对应封装成的computedGetter，而computedGetter会先判断有没有watcher，如果有，并且dirty才会去evaluate()，在evaluate的时候，实际上去运行了watcher的get，并且运行完后把dirty改为false，这样下一次取值就直接通过watcher.value来取。在evaluate运行完之后，看当前有没有Dep.target，如果有就运行watcher的depend()
+    
+    function createComputedGetter (key) {
+      return function computedGetter () {
+    	const watcher = this._computedWatchers && this._computedWatchers[key]
+    	if (watcher) {
+      		if (watcher.dirty) {
+    			watcher.evaluate()
+      		}
+      		if (Dep.target) {
+    			watcher.depend()
+      		}
+      		return watcher.value
+    	}
+      }
+    }
 
     evaluate () {
     // 拿到被watch的值
@@ -23,7 +44,7 @@ createComputedGetter():该方法创建一个计算属性的get，接受一个参
     	this.dirty = false
     }
 
-如上面代码所示基本上只有2句话，就是运行this.get(),下面看看get（）中运行了什么
+下面看看get（）中运行了什么，evaluate会把当前这个计算属性作为目标watcher，通过调用computed，触发data的get方法。从而把依赖收集到这个watcher的deps中，注意getter的上下文永远是vm上面绑定的实例。
 
      get () {
     // 把当前实例watcher实例push到一个数组中,这个数组是targetStack
@@ -59,35 +80,36 @@ createComputedGetter():该方法创建一个计算属性的get，接受一个参
    	}
 
 get（）的运行，伴随着pushTarget（this），this.getter.call(vm,vm),popTarget(),this.cleanupDeps()4个方法.<br/>
-getter就是上面的someProp，首先可以知道的是，当第一次执行this.someProp的时候，相当于执行了方法体，this.aaa，this.bbb这2个属性都触发了defineReactive中定义的get的过程，同时由于将pushTarget(this),因此Dep.target就是当前watcher，这个时候aaa属性和bbb属性的dep会被计算属性的watcher收集，并且aaa，bbb的dep中的subs也会压入这个watcher,同时将dirty赋值为false，当下一次继续访问计算属性的时候，由于watcher.dirty为false，因此直接返回的是watcher.value,见如下代码。
+getter就是上面的someProp，首先可以知道的是，当第一次执行this.someProp的时候,相当于执行这个函数，this.aaa，this.bbb这2个属性都触发了defineReactive中定义的get的过程，同时由于将pushTarget(this),因此Dep.target就是当前watcher，这个时候aaa属性和bbb属性的dep会被计算属性的watcher收集，并且aaa，bbb的dep中的subs也会压入这个watcher,同时将dirty赋值为false，当下一次继续访问计算属性的时候，由于watcher.dirty为false，因此直接返回的是watcher.value,evaluate运行完后，当前computed的watcher已经被弹栈了，注意，在第一次初始化渲染vnode的时候，在computed Watcher弹栈后，当前的Dep.target会变成vm._watcher，可以认为是视图watcher，这里很关键，因为此时Dep.target存在，且为视图更新的watcher，此时调用wathcer.depend()
 
-    function createComputedGetter (key) {
-      return function computedGetter () {
-    	const watcher = this._computedWatchers && this._computedWatchers[key]
-    	if (watcher) {
-      		if (watcher.dirty) {
-    			watcher.evaluate()
-      		}
       		if (Dep.target) {
     			watcher.depend()
       		}
-      		return watcher.value
-    	}
-      }
-    }
-在初始化computed的时候，传入了lazy:ture,这个属性其实就在new watcher的时候不要去立即去执行get（），同时将dirty也赋值为lazy这个值，所以初始化的时候dirty为true，当执行一次computed属性之后，dirty为false，下一次取值直接返回wathcher.value,什么时候dirty会变成true呢，就是在this.aaa和this.bbb至少有一个改变的时候,假定this.aaa改变，那么这时this.aaa的defineReactive的set方法会给出一个notify（），该notify（），会通知dep的sub下面的所有watcher，然后进行update，下面看看update（）里面的代码。
 
-    update () {
-    /* istanbul ignore else */
-    if (this.lazy) {
-      this.dirty = true
-    } else if (this.sync) {
-      this.run()
-    } else {
-      queueWatcher(this)
-    }
-      }
-可以看到由于this.lazy为true，因此对于computed的watcher来说，这里只运行this.dirty = true,而对于this.aaa属性的dep会去执行quequeWatcher（this），把这个wathcer放到一个更新队列里面，在nextTick的时候，去一个一个的执行，属于this.aaa的updateComponent方法，这个方法里面会去调用vm._render（）来访问计算属性和所有视图用到的属性，因此当访问到计算属性的时候，这个时候由于this.dirty赋值为了true，因此计算属性的方法，会继续执行，算出新的值，只要依赖的属性不变化，computed的属性的返回永远缓存到watcher.value中，这就是computed属性的响应式和不会重复计算相同结果的原因。
+	     // 把deps中的每个dep对象，都调用depend方法
+	      depend () {
+	    	let i = this.deps.length
+	    	while (i--) {
+	      	this.deps[i].depend()
+	      // dep对象中的Target即一个watcher对象,使用该watch对象调用addDep(this.deps[i])
+	    	}
+	      }
+如上面代码，depend的作用是，再深入到之前computed watcher中收集的依赖，让那些依赖被视图依赖所收集，因为可以认为计算属性是data的一套算法组合，虽然模板上面绑定的是计算属性的名字，但是这个计算属性是严格依赖这些data的，所以当这些data修改的时候，首先computed值可能会变，从而视图也会变，而computed watcher属于lazy模式，它最多只能计算当前的属性是多少，而视图的更新依旧需要有数据去驱动，所以把计算属性的依赖，也放入视图watcher的依赖中，当计算属性依赖变化后，计算属性只是去计算新的值，而同样收集了计算属性依赖的视图watcher会去更新视图，重新生产vnode。下面来看看这个过程。<br/>
+      	
+在初始化computed的时候，传入了lazy:ture,这个属性其实就在new watcher的时候不会立即去执行get（），同时将dirty也赋值为lazy这个值，所以初始化的时候dirty为true，当执行一次computed属性之后，dirty为false，下一次取值直接返回wathcher.value,什么时候dirty会变成true呢，就是在this.aaa和this.bbb至少有一个改变的时候,假定this.aaa改变，那么这时this.aaa的defineReactive的set方法会给出一个notify（），该notify（），会通知dep的sub下面的所有watcher，然后进行update，其中就存在这个computed watcher，然后执行update（）,下面看看update（）里面的代码。
+		    { dirty：true }
+		    this.dirty = this.lazy
+		    update () {
+		    /* istanbul ignore else */
+			    if (this.lazy) {
+			      this.dirty = true
+			    } else if (this.sync) {
+			      this.run()
+			    } else {
+			      queueWatcher(this)
+			    }
+		      }
+可以看到由于this.lazy为true，因此对于computed的watcher来说，这里只运行this.dirty = true,而同时对于this.aaa属性，它也被视图watcher收集了，所以视图会更新，dep会去执行quequeWatcher（this），把这个wathcer放到一个更新队列里面，在nextTick的时候，去一个一个的执行，属于this.aaa的updateComponent方法，这个方法里面会去调用vm._render（）来访问计算属性和所有视图用到的属性，因此当访问到计算属性的时候，这个时候由于this.dirty赋值为了true，因此计算属性的方法，会继续执行，算出新的值，只要依赖的属性不变化，computed的属性的返回永远缓存到watcher.value中，这就是computed属性的响应式和不会重复计算相同结果的原因。
 ## watch ##
 watch有几个用法，最常用的就是给一个以.号作为分隔的变量路径，然后给一个回调函数，来进行监听，但是这是最基本的用法，还有跟复杂的是在$watch(fn,cb),fn返回的是一个表达式，cb监听的是这个表达式是否改变，例如
 

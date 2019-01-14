@@ -78,6 +78,15 @@ export function pushTarget (_target: Watcher) {
   Dep.target = _target
 }
 // 弹栈
+// 注意这里的弹栈,这个栈相当于保护现场
+// 因为computed的get,会改变当前的target
+// watch的修改会改变当前的target
+// 但是最终vm._watcher还要收集视图的依赖
+// 因此vm._watcher不能被覆盖了
+// 在wathcer的get()函数中
+// 首先pushTarget
+// 运行完之后popTarget
+// 把当前target换成栈顶的新的一个watcher
 export function popTarget () {
   Dep.target = targetStack.pop()
 }
