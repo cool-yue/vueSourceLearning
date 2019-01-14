@@ -72,6 +72,21 @@ base这边是跟平台无关的基于dom的一些东西
     registerRef(vnode)
     // 下面是函数里面运行的内容
     refs[key] = ref
+    
+    // 如果是循环里面的话,表示同一个ref可能会有多个,初始就创建一个数组
+    // 后面处理ref的时候进行push
+    // 比如<div><p ref="aaaa" v-for="item in items">{{item}}</p></div> items=[1,2,3]
+    // 最终vm.$refs.aaa = [p,p,p]
+    if (vnode.data.refInFor) {
+      // 考虑到了ref在一个v-for指令中
+      if (!Array.isArray(refs[key])) {
+        refs[key] = [ref]
+      } else if (refs[key].indexOf(ref) < 0) {
+        // $flow-disable-line
+        // 如果上下文的refs中没有当前这个ref就push进去
+        refs[key].push(ref)
+      }
+    }
 上面代码相当于如果ref放在vue-component上面，那么ref就为instance，如果不是vue-component，就是对应的dom。一般的情况基本上就是上面的赋值，但是ref也可能存在for循环中，那么for循环中是如何选取元素呢？
 ### update ###
 
