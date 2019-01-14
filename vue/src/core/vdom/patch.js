@@ -262,6 +262,9 @@ export function createPatchFunction (backend) {
         // i里面是创建vue实例然后加挂载
         // 实例放在vnode的componentInstance上面
         // 挂载mount(undefined)
+
+        // 这里初始化针对于init会创建实例
+        // 如果不是init而是后面的diff更新试视图这里面不会再去创建实例
         i(vnode, false /* hydrating */, parentElm, refElm)
       }
       // after calling the init hook, if the vnode is a child component
@@ -304,6 +307,7 @@ export function createPatchFunction (backend) {
     }
   }
 
+  // 针对keep-alive选项
   function reactivateComponent (vnode, insertedVnodeQueue, parentElm, refElm) {
     let i
     // hack for #4339: a reactivated component with inner transition
@@ -326,6 +330,8 @@ export function createPatchFunction (backend) {
     insert(parentElm, vnode.elm, refElm)
   }
 
+  // 将elm插入到parent下面,并且在ref之前
+  // 如果ref不存在,就直接append
   function insert (parent, elm, ref) {
     if (isDef(parent)) {
       if (isDef(ref)) {
@@ -358,6 +364,14 @@ export function createPatchFunction (backend) {
       // 然后继续拿componentInstance._vnode,一直到没有componentInstance为止
       // 这个时候当没有挂载componentInstance之后
       // 看这个vNode有没有tag
+      // patchable的意思就是比如<abc :bbb="aaa"></abc>变成了<abc :bbb="bbb"></abc>
+      // 显然abc不是html标签，不能再patch，因为patch了视图里面也无法显示
+      // abc是一个vue-component,因此这一层级不是html内建标签
+      // 那么就要拿到instance上面的_vnode,这个_vnode为render渲染出来的
+      // 当然也不一定能patch,比如render是这样的<bcd></bdc>
+      // 最后找到vnode.componentInstance不存在的时候，现在这时候就是html内建标签打头的dom
+      // 那么只要tag定义了,就表示是元素
+      // 那么就可以操作dom了
     while (vnode.componentInstance) {
       vnode = vnode.componentInstance._vnode
     }
@@ -435,9 +449,14 @@ export function createPatchFunction (backend) {
       const ch = vnodes[startIdx]
       if (isDef(ch)) {
         if (isDef(ch.tag)) {
+          // 元素节点,触发removeHook
+          // 触发destroyer hook
           removeAndInvokeRemoveHook(ch)
+          // 拿到实例然后调用$destroy(),componentInstance.$destroy()
+          // 如果是keepAlive了,那么就deactivateChildComponent(componentInstance, true /* direct */)
           invokeDestroyHook(ch)
         } else { // Text node
+          // 文本节点随意移除
           removeNode(ch.elm)
         }
       }
@@ -500,7 +519,8 @@ export function createPatchFunction (backend) {
     // 老的elm给新的elm,通过比较oldVnode和Vnode来对elm增量,这样最小化更新dom
 
     // 还有个特点,每一次为了减少复杂度,如果父元素的相关标记是一样的,才会认为这一次的children值得去diff更新
-    // 如果父元素都不一样,就不会再一个个去遍历子元素,因为很有可能是应该说大概率子元素的更新也是一个一个完全重建
+    // 如果父元素都不一样,就不会再一个个去遍历子元素,因为很有可能是应该说大概率子元素的更新最终也需要一个一个完全重建
+    // 这样就避免了反复去比对
     // 这样反而效率还不高,于是针对这个情况,直接就完全createElm这个元素
 
     // 不会for循环去遍历,只会比较首尾,为什么会比较首尾呢,因为首尾是最能影响性能的边界条件,比如abc变成了uuuyyyxxxxxxxxxxxxxxxxxxxxxxxcba,
@@ -542,12 +562,12 @@ export function createPatchFunction (backend) {
         // 为什么在nodeOps.nextSibling(oldEndVnode.elm)前插入?而不是直接append,原因是尾部也设置了index
         // 尾部匹配不代表就是children最后一个元素,因为如果尾尾匹配的话，新老的endIndex会向前移,那么下一次,头尾匹配
         // 其实是匹配的前移后的尾部,因此插入的位置实际上是这个endIndex的位置,也就是nodeOps.nextSibling(oldEndVnode.elm)
-        // 的前面,插入后前面的索引都向前移了以为,当前被插入的正好就是endIndex的位置
+        // 的前面,插入后前面的索引都向前移了一位,当前被插入的正好就是endIndex的位置
         // 新老的index都会变
         // 由于vnode的顺序没有变,随着匹配一次++或者--,加上循环条件的限定,表示vnode并不会重复操作dom
         // 比如在这个分支里面oldStartVnode.elm已经插入到了后面
         // 但是能匹配到这个oldStartVnode的索引已经移走了,不管是在endIndex还是startIndex
-        // 因为老的startIndex++ ,新的endIndex--
+        // 因为老的进行了startIndex++ ,新的进行了endIndex--
         patchVnode(oldStartVnode, newEndVnode, insertedVnodeQueue)
         canMove && nodeOps.insertBefore(parentElm, oldStartVnode.elm, nodeOps.nextSibling(oldEndVnode.elm))
         oldStartVnode = oldCh[++oldStartIdx]
@@ -609,7 +629,7 @@ export function createPatchFunction (backend) {
     // 运行到这里索引可能已经变动了很多
     // 如果oldStartIndex > oldEndIndex 表示oldVnode遍历完了
     // 如果新的newStartIndex newEndIndex可能越界,也可能不越界,但是它们之间如果存在vnode
-    // 表示这些vnode是oldVnode中不存在的
+    // 这些vnode是oldVnode中不存在的
     // 需要为这些新的vnode创建dom,但是问题是他们应该插入到哪里呢
     // 参照元素newChildren中的newEndindex+1这个元素
     // 这些元素应该放在这个元素的前面
@@ -665,7 +685,7 @@ export function createPatchFunction (backend) {
       (isTrue(vnode.isCloned) || isTrue(vnode.isOnce))
     ) {
       vnode.componentInstance = oldVnode.componentInstance
-      return
+      
     }
 
     // 前面的条件都不满足,ok,现在开始patch
@@ -685,15 +705,27 @@ export function createPatchFunction (backend) {
     // prepatch做完了之后,或者是内建tag的标签更新
     const oldCh = oldVnode.children
     const ch = vnode.children
+    // 这里可以运行的情况表示
+    // 这里是一个html原生标签
+    // 比如<div class="xxx"></div>变成了<div class="bbb"></div>
     if (isDef(data) && isPatchable(vnode)) {
       // 这里主要是运行钩子函数
       // 因为属于dom更新所以会牵扯到一些transition或者directive啥的
       // 所以先把cbs中的全部的update调用一遍
       // 然后再调用组件hook中的update
       // 这里触发一些钩子啥的
+       
+      // 注意这里vnode的值已经变成了没有instance的_vnode,也就是原生html模板打头的
+
+      // 由于这里已经是原生dom的情况了,所以可以调用cbs.update
+      // 来更新类似于style,class,attr,nativeOn这类
       for (i = 0; i < cbs.update.length; ++i) cbs.update[i](oldVnode, vnode)
+      // 下面这个个函数是调用的data.hook.update
       if (isDef(i = data.hook) && isDef(i = i.update)) i(oldVnode, vnode)
     }
+    // 运行到这里更新了dom的class，style，directive，nativeon,attr
+    // 更新了instance上面的对应的props,children,listener
+
     // 这里表示非文本vnode
     if (isUndef(vnode.text)) {
       if (isDef(oldCh) && isDef(ch)) {
@@ -704,6 +736,7 @@ export function createPatchFunction (backend) {
         // 同时要判断老的是个文本节点,那么先把文本设置为空
         if (isDef(oldVnode.text)) nodeOps.setTextContent(elm, '')
         // 然后以elm作为父节点,添加vnodes
+        // 在elm中插入ch中所有的vnode对应的dom
         addVnodes(elm, null, ch, 0, ch.length - 1, insertedVnodeQueue)
       } else if (isDef(oldCh)) {
         // 如果新的没有children老的有

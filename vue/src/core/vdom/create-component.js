@@ -62,7 +62,7 @@ const componentVNodeHooks = {
   // 预补丁
   // oldVnode,vnode
   // 这里是2个vNode来打补丁,
-  //
+  // prepatch就是给vue-component来获取更新后的props,listeners,children
   prepatch (oldVnode: MountedComponentVNode, vnode: MountedComponentVNode) {
     /* componentOptions中拥有以下几个属性
       Ctor: ƒ VueComponent(options)
@@ -85,6 +85,9 @@ const componentVNodeHooks = {
     )
   },
 
+  // insert就是做一个标志位的统一
+  // 保证调用了insert的时候组件都是挂载状态
+  // 并且能够调用mounted函数
   insert (vnode: MountedComponentVNode) {
     // 拿到vnode的context和componentInstance
     // 如果没有挂载,那么就赋值为挂载,触发mounted
@@ -147,6 +150,9 @@ export function createComponent (
 
   // plain options object: turn it into a constructor
 // 如果Ctor是一个对象,那么就通过Vue.extend(Ctor)创建一个构造函数
+// 对于每个vue-component这里都要运行
+// 但是呢extend中设置了缓存,基本上直接第二次修改数据生成新的vnode的时候
+// 这里不会再去创建一个全新的构造函数,而是根据cid,直接返回缓存的
   if (isObject(Ctor)) {
     Ctor = baseCtor.extend(Ctor)
   }

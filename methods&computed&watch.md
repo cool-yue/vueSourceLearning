@@ -109,7 +109,7 @@ getter就是上面的someProp，首先可以知道的是，当第一次执行thi
 			      queueWatcher(this)
 			    }
 		      }
-可以看到由于this.lazy为true，因此对于computed的watcher来说，这里只运行this.dirty = true,而同时对于this.aaa属性，它也被视图watcher收集了，所以视图会更新，dep会去执行quequeWatcher（this），把这个wathcer放到一个更新队列里面，在nextTick的时候，去一个一个的执行，属于this.aaa的updateComponent方法，这个方法里面会去调用vm._render（）来访问计算属性和所有视图用到的属性，因此当访问到计算属性的时候，这个时候由于this.dirty赋值为了true，因此计算属性的方法，会继续执行，算出新的值，只要依赖的属性不变化，computed的属性的返回永远缓存到watcher.value中，这就是computed属性的响应式和不会重复计算相同结果的原因。
+可以看到由于this.lazy为true，因此对于computed的watcher来说，这里只运行this.dirty = true,而同时对于this.aaa属性，它也被视图watcher收集了，所以视图会更新，dep会去执行quequeWatcher（this），把这个wathcer放到一个更新队列里面，在nextTick的时候，去一个一个的执行，属于this.aaa的updateComponent方法，这个方法里面会去调用vm._render（）来访问计算属性和所有视图用到的属性，因此当访问到计算属性的时候，这个时候由于this.dirty赋值为了true，因此计算属性的方法，会继续执行，算出新的值，只要依赖的属性不发生变化，computed的属性的返回watcher.value，也就是上一次执行后计算属性后的值，这就是computed属性的响应式和不会重复计算相同结果的原因，同时也是构成响应式的原因
 ## watch ##
 watch有几个用法，最常用的就是给一个以.号作为分隔的变量路径，然后给一个回调函数，来进行监听，但是这是最基本的用法，还有跟复杂的是在$watch(fn,cb),fn返回的是一个表达式，cb监听的是这个表达式是否改变，例如
 

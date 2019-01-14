@@ -32,6 +32,8 @@ export function initExtend (Vue: GlobalAPI) {
     // 正常情况下基本是不会往extend里面放一个_Ctor属性
     const cachedCtors = extendOptions._Ctor || (extendOptions._Ctor = {})
     // cachedCtors里面有没有superId,有就返回,没有继续往下走
+    // 这里是在第二次数据驱动更新视图的时候
+    // 直接返回缓存的Ctor,而不是再去创建一个构造函数
     if (cachedCtors[SuperId]) {
       return cachedCtors[SuperId]
     }

@@ -113,7 +113,7 @@ var abc = Vue.component("abc",{
 
 // with(this){return _l((items),function(key){return _c('div',[_c('h2',[_v(_s(key))]),_c('abc'),_c('div',[_v(_s(info))]),(show)?_c('div',[_v("show")]):_e()],1)})}
 
-app1 = new Vue({
+app2 = new Vue({
 	template:"<div><h2>123</h2><abc :t='titel'></abc><div>{{info}}</div><div v-if='show'>show</div></div>",
 	data(){
 		return {
@@ -125,4 +125,26 @@ app1 = new Vue({
 	}
 });
 
+app1 = new Vue({
+	template:"<div><p v-for='key in items' ref='aaaa'></p></div>",
+	data() {
+		return {
+			items:[1,2,3]
+		}
+	}
+})
+
+console.log(Vue.compile("<div><p v-for='key in items' ref='aaaa'></p></div>"));
+
 app1.$mount(document.getElementById("app"));
+
+
+var ndContainer = document.getElementById('list');
+for (var i = 0; i < 3; i++) {
+    var ndItem = document.createElement('li');
+    ndItem.innerText = i + 1;
+    ndItem.addEventListener('click', function () {
+        alert(this.innerText);
+    });
+    ndContainer.appendChild(ndItem);
+}

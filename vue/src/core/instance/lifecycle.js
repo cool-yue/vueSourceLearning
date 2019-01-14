@@ -277,6 +277,9 @@ export function mountComponent (
   return vm
 }
 
+// prePatch,相当于针对vue-component实例上面属性的更新
+// 之所以需要这个prePatch
+// 后面更新的dom需要依赖instance里面的一些东西
 export function updateChildComponent (
   vm: Component,
   propsData: ?Object,
@@ -284,12 +287,25 @@ export function updateChildComponent (
   parentVnode: VNode,
   renderChildren: ?Array<VNode>
 ) {
+  // 在开发模式中给个标志位,便于调试
   if (process.env.NODE_ENV !== 'production') {
     isUpdatingChildComponent = true
   }
+  // 注意这里的vm是老的实例,实例只在初始化的时候创建
+  // 所以vm中的数据需要更新
+  // 为什么不是直接反应到vm中的呢？
+  // 比如this.aaa = XXX,<abc bbb="aaa"></abc>
+  // 设置这个this.aaa属于abc渲染的context，这个context是abc实例的parent
+  // 在render生成vnode的时候,在parent中解析出了aaa变化,抽取成componnetOptions
+  // vnode.componentOptions为更新后的值
+  // 而这个值并没有体现到abc的instance上面,因为在abc中可能要用到bbb这个props渲染模板
+  // 因此在patch abc的时候,由于abc属于vue-component，并且不会第二次去实例化新的instance
+  // 那么就需要利用在contex中render出来的新vnode里面的值去更新abc实例上面的值,这样才能做到
+  // 时刻保持同步
 
   // determine whether component has slot children
   // we need to do this before overwriting $options._renderChildren
+  // 判断是否有children
   const hasChildren = !!(
     renderChildren ||               // has new static slots
     vm.$options._renderChildren ||  // has old static slots
@@ -297,21 +313,29 @@ export function updateChildComponent (
     vm.$scopedSlots !== emptyObject // has old scoped slots
   )
 
+  // 更新parentVnode
   vm.$options._parentVnode = parentVnode
+  // 更新$vnode
   vm.$vnode = parentVnode // update vm's placeholder node without re-render
 
   if (vm._vnode) { // update child tree's parent
+    // 更新_vnode的parent,注意_vnode是render生成的,而不是parent的占位符
     vm._vnode.parent = parentVnode
   }
+  // 更新renderChildren
   vm.$options._renderChildren = renderChildren
 
   // update $attrs and $listensers hash
   // these are also reactive so they may trigger child update if the child
   // used them during render
+
+  // 更新attr
+  // 更新listeners
   vm.$attrs = parentVnode.data && parentVnode.data.attrs
   vm.$listeners = listeners
 
   // update props
+  // 更新props,并验证值
   if (propsData && vm.$options.props) {
     observerState.shouldConvert = false
     const props = vm._props
