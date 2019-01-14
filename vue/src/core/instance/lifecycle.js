@@ -100,6 +100,14 @@ export function lifecycleMixin (Vue: Class<Component>) {
       // 每一次patch都会更新到vm.$el上
       vm.$el = vm.__patch__(prevVnode, vnode)
     }
+    // 还原了activeInstance
+    // 还原的原因是,因为vnode渲染的深度优先比如一个{tag:"div",children:[vnode1,vnode2]}
+    // 比如vnode1跟vnode2是同一层,但是会先渲染vnode1,vnode1里面的层级并不确定,因此在渲染vnode1的时候
+    // 可能要创建vue实例,vnode1中可能又是{tag:"div",children:[vnode3,vnode4]},因为上下文不一样,
+    // 比如创建vnode1的时候,vnode1内部所有的vnode3,,vnode4都应该在vnode1的实例context范围
+    // activeInstance当前就是vnode1,但是当vnode1内部渲染好之后,开始要渲染让你vnode2了
+    // vnode2需要的数据还是root,而不是vnode1,因此activeInstance要换成root,也就是说还原渲染vnode1时候的
+    // context,这样vnode2依赖的数据才会在正确的上下文中找到
     activeInstance = prevActiveInstance
     // update __vue__ reference
     if (prevEl) {

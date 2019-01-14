@@ -942,6 +942,11 @@ export function createPatchFunction (backend) {
         // 如果parentEle定义了
         // 就删掉oldVnode
         if (isDef(parentElm)) {
+          // 这句话就是清楚基准标签
+          // 比如<div id="app"></div>
+          // Vue渲染的视图,会在<div id="app"></div>和它后面的节点之间插入
+          // 最后删除这个节点,可以认为vue并不是去替换这个节点,而是把这个节点当基准点
+          // 最后插入完毕后删除这个节点
           removeVnodes(parentElm, [oldVnode], 0, 0)
         } else if (isDef(oldVnode.tag)) {
           // 如果oldVnode.tag存在
