@@ -122,14 +122,14 @@ initWatch:该方法顾名思义就是做初始化opition中的watch选项，这�
     function initWatch (vm: Component, watch: Object) {
       process.env.NODE_ENV !== 'production' && checkOptionType(vm, 'watch')
       for (const key in watch) {
-    const handler = watch[key]
-    if (Array.isArray(handler)) {
-      for (let i = 0; i < handler.length; i++) {
-    createWatcher(vm, key, handler[i])
-      }
-    } else {
-      createWatcher(vm, key, handler)
-    }
+    	const handler = watch[key]
+    	if (Array.isArray(handler)) {
+      		for (let i = 0; i < handler.length; i++) {
+    			createWatcher(vm, key, handler[i])
+      		}	
+    	} else {
+      		createWatcher(vm, key, handler)
+    	}
       }
     }
 
@@ -142,11 +142,11 @@ createWatcher：该方法可以传递4个参数，分别是vm，keyOrFn，handle
       options?: Object
     ) {
       if (isPlainObject(handler)) {
-    options = handler
-    handler = handler.handler
+    		options = handler
+    		handler = handler.handler
       }
       if (typeof handler === 'string') {
-    handler = vm[handler]
+    		handler = vm[handler]
       }
       return vm.$watch(keyOrFn, handler, options)
     }
@@ -159,23 +159,23 @@ createWatcher：该方法可以传递4个参数，分别是vm，keyOrFn，handle
 最后先贴一波$watch的源码，如下所示。
 
       Vue.prototype.$watch = function (
-    expOrFn: string | Function,
-    cb: any,
-    options?: Object
+    	expOrFn: string | Function,
+    	cb: any,
+    	options?: Object
       ): Function {
-    const vm: Component = this
-    if (isPlainObject(cb)) {
-      return createWatcher(vm, expOrFn, cb, options)
-    }
-    options = options || {}
-    options.user = true
-    const watcher = new Watcher(vm, expOrFn, cb, options)
-    if (options.immediate) {
-      cb.call(vm, watcher.value)
-    }
-    return function unwatchFn () {
-      watcher.teardown()
-    }
+    	const vm: Component = this
+    	if (isPlainObject(cb)) {
+      		return createWatcher(vm, expOrFn, cb, options)
+    	}
+    	options = options || {}
+    	options.user = true
+    	const watcher = new Watcher(vm, expOrFn, cb, options)
+    	if (options.immediate) {
+      		cb.call(vm, watcher.value)
+    	}
+    	return function unwatchFn () {
+      		watcher.teardown()
+    	}
       }
 ### 为什么watch能够在变化的时候去执行回调，如果watch的是一个函数返回的值，如何监听及运行回调 ###
     vm.$watch("a.b.c",function(newValue,oldValue) {});
