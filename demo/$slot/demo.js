@@ -1,3 +1,29 @@
+var template1 = "<div><slot><div>aaaa</div></slot></div>"
+var template2 = "<aaa><div>aaa</div></aaa>"
+
+ var render1 = Vue.compile("<aaa><div slot='header'>aaa</div></aaa>");
+ var render2 = Vue.compile("<div><slot name='header'></slot><slot name='footer'></slot><slot></slot></div>");
+var render3 = Vue.compile(template1);
+
+
+ console.log("render1",render1.render);
+ console.log("render2",render2.render);
+ console.log("render3",render3.render);
+
+
+tempalte3 = `<ul><dx-li><span slot-scope="scope">{{scope.str}}</span></dx-li></ul>`
+
+template4 = `<li class="dx-li">	<slot str="你好 掘金！">hello juejin!</slot></li>`
+var render4 = Vue.compile(tempalte3);
+var render5 = Vue.compile(template4);
+
+//var render4 = Vue.compile(tempalte3);
+console.log("render4",render4.render);
+console.log("render5",render5.render);
+
+
+
+
 Vue.component("myDiv",{
 	template:"<div><slot>我是默认的</slot></div>",
 	mounted() {
