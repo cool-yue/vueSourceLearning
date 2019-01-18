@@ -274,6 +274,8 @@ export function createPatchFunction (backend) {
       if (isDef(vnode.componentInstance)) {
         // 如果vnode上面已经有instance了
         // initComponent(vnode)
+        // 该处的代码不管是否组件已经挂载这里都会执行
+        // 这里的工作主要是将带有instance的vnode压入一个队列
         initComponent(vnode, insertedVnodeQueue)
         if (isTrue(isReactivated)) {
           // 如果是有keepAlive选项
@@ -290,11 +292,14 @@ export function createPatchFunction (backend) {
       // 如果data里面有pendingInsert
       // 把pendingInsert push到insertedVnodeQueue中
       // 然后把pendingInsert置为null
+      // 将带有instance的vnode压入insertedVnodeQueue
       insertedVnodeQueue.push.apply(insertedVnodeQueue, vnode.data.pendingInsert)
       vnode.data.pendingInsert = null
     }
     // 把componentInstance中的$el赋值给vnode.elm
     vnode.elm = vnode.componentInstance.$el
+    // 如果vnode属于可更新的vnode
+    // 也就是如果vnode的instance render的dom是元素节点
     if (isPatchable(vnode)) {
       invokeCreateHooks(vnode, insertedVnodeQueue)
       setScope(vnode)

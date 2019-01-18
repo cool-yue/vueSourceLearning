@@ -65,4 +65,51 @@ diff算法是程序上最小化的更新，它抛弃了严格地层次遍历，�
     		  vnode, // new parent vnode
     		  options.children // new children
     		)
-这5个属性，很清晰，下面看看具体更新。
+这5个属性，很清晰，下面看看具体更新。由于vm实例已经存在了，所以就不必要再次创建实例了，直接在已经创建的实例上面覆盖属性。
+
+
+    // 覆盖父节点占位符
+    vm.$options._parentVnode = parentVnode
+    vm.$vnode = parentVnode
+    if (vm._vnode) { 
+       vm._vnode.parent = parentVnode
+    }
+    
+    // 拿到新的children
+    vm.$options._renderChildren = renderChildren
+    
+    // 拿到新的attrs
+    vm.$attrs = parentVnode.data && parentVnode.data.attrs
+    
+    // 拿到新的listeners
+    vm.$listeners = listeners
+    
+    // 处理props,这里依旧需要validateProps
+    if (propsData && vm.$options.props) {
+    	observerState.shouldConvert = false
+    	const props = vm._props
+    	const propKeys = vm.$options._propKeys || []
+    	for (let i = 0; i < propKeys.length; i++) {
+      		const key = propKeys[i]
+      		props[key] = validateProp(key, vm.$options.props, propsData, vm)
+    	}
+    	observerState.shouldConvert = true
+    	// keep a copy of raw propsData
+    	vm.$options.propsData = propsData
+    }
+    
+    // 更新listener
+    // 针对新的listener对象和老的对象
+    // 来进行listener的对象合并，新的覆盖久的
+    if (listeners) {
+    const oldListeners = vm.$options._parentListeners
+    vm.$options._parentListeners = listeners
+    	updateComponentListeners(vm, listeners, oldListeners)
+    }
+    
+    // 更新vm.$slot对象，然后强制vm的视图watcher进行update视图
+    if (hasChildren) {
+    	vm.$slots = resolveSlots(renderChildren, parentVnode.context)
+    	vm.$forceUpdate()
+    }
+总结上面的updateChildComponent基本上就是在已经存在的vm实例上面，来更新这些属于instance的一些属性。
