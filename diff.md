@@ -112,4 +112,7 @@ diff算法是程序上最小化的更新，它抛弃了严格地层次遍历，�
     	vm.$slots = resolveSlots(renderChildren, parentVnode.context)
     	vm.$forceUpdate()
     }
-总结上面的updateChildComponent基本上就是在已经存在的vm实例上面，来更新这些属于instance的一些属性。
+总结上面的updateChildComponent基本上就是在已经存在的vm实例上面，来更新这些属于instance的一些属性。vnode现在已经是新版本的了，vm的实例也更新了，主要是更新$options里面的配置。如果
+
+<abc><div>aaa</div></abc>
+<abc><div>bbb</div></abc>

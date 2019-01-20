@@ -356,6 +356,13 @@ export function updateChildComponent (
     updateComponentListeners(vm, listeners, oldListeners)
   }
   // resolve slots + force update if has children
+  // children存在为什么要强制更新?
+  // 比方说对于<abc><div>aaa</div></abc>
+  // <abc><div>bbb</div></abc>
+  // 原则上这个标签没法操作dom
+  // 因为它不是html原生标签
+  // 前面的属性都是js范畴的，而slot这个跟dom相关了
+  // 因此这里需要通过vm.$forceUpdate来更新vm的视图
   if (hasChildren) {
     vm.$slots = resolveSlots(renderChildren, parentVnode.context)
     vm.$forceUpdate()

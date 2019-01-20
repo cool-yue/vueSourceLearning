@@ -72,6 +72,7 @@ $slot属性到底存的是什么。$slot是一个对象,这个对象的键为slo
        "footer":[vnode]
     }
 在组件实例化的时候，initRender的过程已经将aaa的children渲染到vm.$slot.default中了（如果slot不具名），如果是具名的话逻辑如下：
+
     "<aaa><div slot='header'>aaa</div></aaa>"
     with(this){return _c('aaa',[_c('div',{attrs:{"slot":"header"},slot:"header"},[_v("aaa")])])
 
