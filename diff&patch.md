@@ -112,7 +112,33 @@ diff算法是程序上最小化的更新，它抛弃了严格地层次遍历，�
     	vm.$slots = resolveSlots(renderChildren, parentVnode.context)
     	vm.$forceUpdate()
     }
-总结上面的updateChildComponent基本上就是在已经存在的vm实例上面，来更新这些属于instance的一些属性。vnode现在已经是新版本的了，vm的实例也更新了，主要是更新$options里面的配置。如果
+总结上面的updateChildComponent基本上就是在已经存在的vm实例上面，来更新这些属于instance的一些属性。vnode现在已经是新版本的了，vm的实例也更新了，主要是更新$options里面的属性。这里需要注意的是，修改props或者存在slot的渲染，也就是解析出了存在renderChildren的情况下，这2个操作都会触发render watcher的update方法，有props属性的更新，既然有props那么这个属性一定是父子之间传递用的，由于父context里面进行了this.xxx = xxx的操作，相当于对xxx属性进行了set操作，set操作会触发watcher的update方法。而拥有renderChildren的情况下，会直接进行vm.$forceUpdate(),这是因为假如没有props的set操作，那么就不会触发更新的，而slot的渲染，是一定要触发更新的，因为renderChildren需要从父context的上下文传入到子组件的vm实例上面，然后通过$slot传入，从而forceUpdate（）之后将子组件的render wathcer 压入了queue中，这时vm已经是拥有更新或者没有更新的$slot的值了，这样在vm去render（）生成vnode的时候，才能正确的解析出slot部分应该如何渲染。回到前面，既然props新值的覆盖或者slot存在，会触发render watcher的update那么，看看update做了什么。
+    
+      update () {
+    	/* istanbul ignore else */
+    	if (this.lazy) {
+      		this.dirty = true
+    	} else if (this.sync) {
+     	    this.run()
+    	} else {
+      		queueWatcher(this)
+    	}
+      }
 
-<abc><div>aaa</div></abc>
-<abc><div>bbb</div></abc>
+以上update的代码。lazy是针对计算属性的，sync字段是同步，一般情况下不会设置sync，所以会运行queueWatcher(this),也就是把这个watcher压入到queue中，注意的是，这里的过程是，父组件的run方法还没执行完，在执行的过程中，将子组件的watcher压入了queue中，flushQueue的的循环执行中，又放入了一个待执行的render watcher，所以这里这个循环遍历flush queue的长度又增加了，依次进行下来，比如当下一个watcher执行的时候，可能还会引入新的wathcer，那么queue队列又会追加一个进去，以此不停地追加下去，直到没有触发新的render watcher位置，另一方面，在收集新的render watcher的时候，会充分考虑到watcher的id，将id以正确的顺序插入，而不是简单的push，这样的好处在于，顺序一致，比如组件a,id为1里面有组件b，id为2，b组件后面是组件c，id为5，在b组件的watcher执行的时候，引入了新的组件d，id为4，由于目前在更新组件b，而d从属于d，因为vue的组件是按照深度优先来渲染的，因此渲染d相当于渲染b的一部分，因此b需要放在c的前面来执行，所以这个时候就需要通过id来找准watcher的顺序，这样在渲染的时候，才更加符合先后的顺序。
+
+    // 某一时刻flashqueue的状态，
+    flashQueue: [a(1),b(2),c(5)]
+    // a运行完毕后，开始运行b,由于b存在子组件，且触发了子组件d的props或者子组件有slot
+    flashQueue：[b(2,执行中),c(5)],d(4)需要加入到queue中
+    // 通过d组件的id为4，来插入到queue中正确的位置
+    flashQueue :[b(2,执行中),d(4),c(5)]
+    // b执行完后,运行d（4）
+    flashQueue：[d(4 运行中),c(5)]
+    // 假定d(4)并没有引入新的render watcher
+    flashQueue:[c(5)]
+    // 最后c(5)执行,假定没有引入新的watcher，那么queueflash完毕
+    flashQueue:[]
+
+
+    

@@ -1,7 +1,7 @@
 const abc = {
     render(h) {
         return h('div',
-        [this.$slots.default,h("div",[this.aaa || "no input"])])
+        [h("div",[this.aaa || "no input"])])
     },
     props:{
         aaa:String
@@ -15,11 +15,11 @@ const app = new Vue({
     data() {
         return {
             aaa:"This is from parent",
-            mes:"father"
+            //mes:"father"
         }
     },
     render(h) {
-        return h("div",[h('abc',{attrs:{aaa:this.aaa}},[h('div',this.mes)])]);
+        return h("div",[h('abc',{attrs:{aaa:this.aaa}})]);
     },
     components:{abc}
 });
