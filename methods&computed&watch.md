@@ -153,7 +153,7 @@ createWatcher：该方法可以传递4个参数，分别是vm，keyOrFn，handle
 
 最后看看$watch做了什么，$watch这个实例方法，是在Vue构造函数全局初始化的时候并入的，如果到了$watch，handler依旧是对象，那么继续用createWatcher去标准化，通常情况下，不会如此深入。拿到第三个参数options，并在options的user上给一个true，因为只要存在watch选项，或者$watch的调用,基本上都而已认为是用户定义的，Vue内部的初始化，纵观了核心源码，没找到使用了watch选项或者调用了$watch方法的时候，最后watcher = new Watcher（vm，expOrFn，cb，options），然后再判断options.immediate是否为true，如果是true，就先调用一次cb.call(vm,watcher.value),这个watcher.value是在new Watcher的时候，调用了watcher中的get（）函数，最后算出的值。同时通过这样来调用$watch,返回一个teardown，来解绑wathcer。
 
-    var w = vm.$watch("a.b",fn);
+     var w = vm.$watch("a.b",fn);
     // w为一个tearndown，它只teardown当前这个watcher，通过闭包来实现
     w();//teardown掉watcher
 最后先贴一波$watch的源码，如下所示。
@@ -177,6 +177,23 @@ createWatcher：该方法可以传递4个参数，分别是vm，keyOrFn，handle
       		watcher.teardown()
     	}
       }
+在实例化watch选项的wathcer时候，进行了下列操作：
+
+    this.getter = parsePath(expOrFn)
+    // parsePath返回的是function(obj) {return obj.a.b.c}
+    // 通过这个定义的形式，说明了watch只能监听定义watch的同一个vm上，因为这obj就是上下文
+    this.value = this.get()
+this.get()拿到值
+
+    pushTarget(this)
+    value = this.getter.call(vm, vm)
+    popTarget()
+
+这个getter方法，会将getter中有关的属性，全部收集到user watcher这个dep中。比如
+
+    obj.a.b.c
+
+那么a，b，c，3个层次的属性，都会被收集到user watcher中，如果有一个修改，那么就会notify去执行watcher的update，由于这个3个watcher是一个id，因此最终只会有一个watcher进去queue中，然后执行get，得到新值，然后把旧值也作为参数传入进去，下面来看看。上面还定义了computed属性，computed属性也是可以watch的，但是他们的执行顺序有要求，computed的依赖有值进行修改的时候，computed watcher首先去将dirty设置为true，然后user watcher也收集了computed里面的依赖，从而去触发watcher的回调，watcher会去调用computed然后的getter来获得新的computed的值（通过evaluate），然后计算出来之后触发watch的回调，最后触发render watcher，这一系列的顺序很重要，这也就是为什么watcher需要进行排序的原因，比如如果user watcher先触发，computed watcher后触发，那么这时其实dirty的值还是false，因此watch的回调基本上没有不会执行，因为2次的值都是取的computed缓存的值，而不是evaluate之后的新值，在初始化的时候先initComputed后initWatch这个过程，导致2次产生watcher的id是user watcher > computed watcher，因此在flushQueue之前的从小到大的排序，会再次确保这个顺序，让computed watcher在user watcher之前执行。而render watcher是在第一次mountComponent的时候才会初始化，以确保内部的各种watcher都执行之后，最终执行render watcher。
 ### 为什么watch能够在变化的时候去执行回调，如果watch的是一个函数返回的值，如何监听及运行回调 ###
     vm.$watch("a.b.c",function(newValue,oldValue) {});
     watch:{"a.b.c":function(newValue,oldValue) {}};
