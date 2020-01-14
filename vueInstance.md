@@ -13,7 +13,7 @@
 	    options || {},
 	    vm
       )
-首先mergeOptions是就是把Options里面的属性进行合并，根据不同字段策略会不同，比如hook会把重复的值进行合并成数组，components，directives，filters这些会把合并的内容也就是parent的内容，放在__proto__上,methods,props,computed基本上是子组件有定义，就用子组件的，data（）因为是函数返回对象，因此合并的时候，其实是调用函数之后，再合并，以子组件的为准，watch跟hook类似，同样的字段的会合并成一个大数组。类似的这些细节在options.js中，并且extend方法里面会用到。<br/>
+首先mergeOptions是就是把Options里面的属性进行合并，根据不同字段策略会不同，比如hook会把重复的值进行合并成数组，components，directives，filters这些会把合并的内容也就是parent的内容，放在`__proto__`上,`methods`,`props`,`computed`基本上是子组件有定义，就用子组件的，data（）因为是函数返回对象，因此合并的时候，其实是调用函数之后，再合并，以子组件的为准，watch跟hook类似，同样的字段的会合并成一个大数组。类似的这些细节在options.js中，并且extend方法里面会用到。<br/>
 vm.constructor就是Vue，所以resolveConstructorOptions的处理方法是:
 
     function resolveConstructorOptions (Ctor: Class<Component>) {
@@ -84,8 +84,8 @@ options = vm.$options，拿到$options,拿到options.parent,判断是不是抽�
     vm._isBeingDestroyed = false
 
 ## initEvents(vm) ##
-这个events不是dom的原生事件，而是vue的事件系统，它是通过在vm._events上维护一些方法集合，来进行on,off,once,emit操作。<br/>
-对于root基本上就只做了2件事，创建一个_events对象,设置标志位_hasHookEvent = false
+这个events不是dom的原生事件，而是vue的事件系统，它是通过在`vm._events`上维护一些方法集合，来进行on,off,once,emit操作。<br/>
+对于root基本上就只做了2件事，创建一个_events对象,设置标志位`_hasHookEvent = false`
 
     vm._events = Object.create(null)
     vm._hasHookEvent = false
@@ -130,7 +130,7 @@ provide是这个组件作为parent会影响下面子组件的里面的inject的�
 ## callHook(vm, 'created') ##
 运行到这里root触发created,如果有，这个时候new Vue({})的事情已经做完了那么为了显示页面需要去挂载，调用vm.$mount函数。vm.$mount函数是一个存在render就render出vnode，然后根据vnode去生成dom的过程。西面继续解析挂载的过程，只有这个过程进行了才有后续的子组件的实例创建。
 ## $mount ##
-首先要明确的是通常我们都是写的template标签，template标签目前还没有被解析成render函数，因此针对需要complier模块去把template选项解析并生成render，同时这里也会告诉我们，直接使用render的性能会更好些，第一不需要额外引入complier，第二少了complie这个过程。但是无论如何，好用快速开发出东西，牺牲一点点性能是能够接受的，因此通常这里会有一个解析模板的过程。如果只提供了template的属性，那么需要在执行$mount之前插入一个complier的操作。举出前面的例子。<div><abc></abc></div>,这样一个模板（当然这里只是为说明情况，后续的abc的解析会增加若干个东西，来保证abc初始化的过程尽量多跑完分支代码，而不是直接跳过）最终会解析成:
+首先要明确的是通常我们都是写的template标签，template标签目前还没有被解析成render函数，因此针对需要complier模块去把template选项解析并生成render，同时这里也会告诉我们，直接使用render的性能会更好些，第一不需要额外引入complier，第二少了complie这个过程。但是无论如何，好用快速开发出东西，牺牲一点点性能是能够接受的，因此通常这里会有一个解析模板的过程。如果只提供了template的属性，那么需要在执行$mount之前插入一个complier的操作。举出前面的例子。`<div><abc></abc></div>`,这样一个模板（当然这里只是为说明情况，后续的abc的解析会增加若干个东西，来保证abc初始化的过程尽量多跑完分支代码，而不是直接跳过）最终会解析成:
 
     '\_c('div',[\_c('abc')])'
 在浏览器中,$mount(el),这严格来说这个el属于一个dom，因此属于平台代码，但是这里也提一下，实际上这个el是通过querySelector（el）来拿到这个元素。
