@@ -117,6 +117,10 @@
             </div>
   <!-- 4 include the jQuery library -->
   <script src="dist/libs/jquery.js"></script>
+  <script
+  src="https://code.jquery.com/jquery-3.3.1.js"
+  integrity="sha256-2Kok7MbOyxpgUVvAk/HJ2jigOSYS2auK4Pfzbm7uH60="
+  crossorigin="anonymous"></script>
   <!-- 5 include the minified jstree source -->
   <script src="dist/jstree.min.js"></script>
   <script>
@@ -177,12 +181,12 @@
       },
       {
         id:5,
-        pid:1,
+        pid:2,
         name:"应用研发组"
       },
       {
         id:6,
-        pid:1,
+        pid:3,
         name:"技术支持组",
 
       }
@@ -271,7 +275,7 @@
         }
     }
 
-console.log(renderTree(data1));
+console.log(renderTree(data));
 
 
 

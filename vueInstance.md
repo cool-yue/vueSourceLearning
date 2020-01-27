@@ -1,19 +1,22 @@
 # vueInstance #
-组件的实例化，回到最初的时候，当初写vue的tempalte的时候还在想为什么<abc></abc>这样的标签，是不是真的创造了标签，只需要给个components：{abc}，就可以在template中写<abc>这样的标签，然后最终把abc的options中的template，替换到了这个<abc>标签的位置。现在简单介绍下<abc>标签是如何的渲染到dom中去的，首先在渲染<abc></abc>的地方，肯定也是另外一个组件的template中，这个组件就是<abc></abc>渲染的上下文context，当这个context的tempalte进行render的时候，也就是生成vnode的时候，发现了有一个<abc></abc>这么怪里怪气的标签，它不是html的约定的标签，发现这个事实后，显然它是自定义的组件，于是赶紧在上下文中的components中找到是不是有对应的属性，并且会对这个属性进行hyphen化来匹配(如果有必要)，因为html大小写不敏感，找到了之后，就拿到了对应的组件的options，这个options就可以认为是个<abc>的options，然后针对这个options来进createComponent，因为options是个对象，所以使用Ctor = baseCtor.extend(Ctor)，这个操作中有一些列的合并选项的操作，总而言之生成了<abc></abc>组件实例的构造器，接下来，拿到解析出来的data，通过data中传入的prop和Ctor中的options.props来把props从attr里面抽取出来，形成一个变量叫propsData,把data.on转化listener，nativeOn给on，因为原则上，nativeOn才是真正的dom事件，这个最终在web端dom插入后，通过遍历on这个对象，来进行dom的绑定，而listener里面属于vue自定义的事件模型，将他们放入vm._events上，然后在data中并入hook这个属性，hook有4个属性{init，prepatch，inserte，destroy}，拿到options中的name，如果没有就用tag代替，这也就是为什么name属性尽量添加上去，这样会便于定位错误和调试，最后才生成一个以vue-component-cid-name为名称的vnode，传入context，传入{Ctor，propsData，listener，tag，children}作为compoonentInstanceOption。vnode创建完毕，当后面进行dom创建的时候，会观察vnode上面有没有hook.init,这个是自定义组件特有的，然后这里会调用init，init里面会为这个vnode先创建componentInstance，通过传入作为compoonentInstanceOption的这些选项，进行实例化，实例化做了什么后面后面一点一点说。在实例化后，会继续$mount,这个mount是挂载到undefined上面了,它确实没有插入到任何地方，而是在内存中，因为挂载后，elm已经产生，而对于context中tempalte的渲染，主需要abc的elm就行了，，所以最终实例产生，对应的$vnode产生，同时vnode.elm也产生，<abc>组件init完毕，然后insert到context中指定的位置（vnode的结构能够反映父子关系），依次递归完成所有操作。下面是组件实例化的过程。<br/>
-如果都到实例化这一步了，基本上可以说明，当前的组件是一个vueComponent所以在Instance创建的过程中会设置很多标志位和初始化很多后面要用到的变量和属性，下面通过源码一个个看。
+组件的实例化，回到最初的时候，当初写`vue`的`template`的时候还在想为什么有`<abc></abc>`这样的标签，是不是真的创造了标签，只需要给个`components：{abc}`，就可以在`template`中写`<abc>`这样的标签，然后最终把`abc`的`options`中的`template`，替换到了这个`<abc>`标签的位置。现在简单介绍下`<abc>`标签是如何的渲染到`dom`中去的，首先在渲染`<abc></abc>`的地方，这个标签肯定也是需要写在另外一个组件(父组件)的`template`中，这个组件就是`<abc></abc>`渲染的上下文`context`，当这个`context`的`tempalte`转化成`render`函数，`render`函数运行后生成`vnode`，这个过程中发现了有一个`<abc></abc>`这么怪里怪气的标签，它不是html的约定的标签，发现这个事实后，显然它是自定义的组件，于是赶紧在上下文中的`components`中找到是不是有对应的属性，并且会对这个属性进行`hyphen化`来匹配(如果有必要)，因为html大小写不敏感，找到了之后，就拿到了对应的组件的`options`，这个`options`就可以认为是个`<abc>组件`的`options`，然后针对这个`options`来进`createComponent`(既然我是组件那么就要创建我这个组件,为了正确渲染我,abc标签不单单只是一个标签,它可能指代的是一大组标签,也就是options中的template)，因为`options`是个对象，所以使用`Ctor = baseCtor.extend(options)`，这个操作中有一些属性的合并选项的操作，相当于构建一个特定`options`对应的特定组件构造器，总而言之生成了`<abc></abc>`组件实例的构造器，接下来，拿到解析出来的`data`，通过`data`中传入的`prop`和`Ctor`中的`options.props`来把`props`从`attr`里面抽取出来，形成一个变量叫`propsData`,把`data.on`转化`listener`，`nativeOn`给`on`，因为原则上，`nativeOn`才是真正的`dom`事件，这个最终在web端dom插入后，通过遍历`on`这个对象,通过`addEventListener`，来进行`dom`的绑定，而`listener`里面属于`vue`自定义的事件模型，将他们放入`vm._events`上，然后在`data`中并入`hook`这个属性，`hook`有4个属性`{init，prepatch，inserte，destroy}`，拿到`options`中的`name`，如果没有就用`tag`代替，这也就是为什么`name`属性尽量添加上去，这样会便于定位错误和调试，最后才生成一个以`vue-component-cid-name`为名称的`vnode`，传入`context`，传入`{Ctor，propsData，listener，tag，children}`作为`compoonentInstanceOption`。`vnode`创建完毕，当后面进行`dom`创建的时候，会观察`vnode`上面有没有`hook.init`,这个是`自定义组件`特有的，然后这里会调用`init`，`init`里面会为这个`vnode`先创建`componentInstance`，通过传入作为`compoonentInstanceOption`的这些选项，进行实例化，实例化做了什么后面后面一点一点说。在实例化后，会继续`$mount`,这个`mount`是挂载到undefined上面了,它确实没有插入到任何地方，而是在内存中，因为挂载后，`elm`已经产生，而对于`context`中`tempalte`的渲染，只需要`abc`的`elm`就行了，，所以最终实例产生，对应的`$vnode`产生，同时`vnode.elm`也产生，`<abc>`组件`init`完毕，然后`insert`到`context`中指定的位置（vnode的结构能够反映父子关系），依次递归完成所有操作。下面是组件实例化的过程。<br/>
+如果都到实例化这一步了，基本上可以说明，当前的组件是一个`vueComponent`所以在`Instance`创建的过程中会设置很多标志位和初始化很多后面要用到的变量和属性，下面通过源码一个个看。
 #根组件的实例化#
-根组件的实例化，跟子组件的实例化略微有些区别，用的时候，一般都会有app = new Vue({}),然后app.$mount(el),只需要根组件来做这个事情。那么看看根组件的实例化经历了什么。这里不考虑根组件也是自定义组件，考虑根组件是个<div><abc></abc></div>这样的情形而不是<abc></abc>的情形。后面针对子组件abc的渲染再来执行，当然如果根组件直接是这样的<abc></abc>实际上就是abc的渲染，但是为了体现上下文的友好和上下文传递属性的直观性，先只考虑<div><abc></abc></div>，先渲染<div><abc></abc></div>再渲染<abc></abc>里面的内容，这样的上下文的逻辑较清晰。
+根组件的实例化，根子组件的实例化略微有些区别，根组件的实例化，一般都会用`app = new Vue({})`,然后`app.$mount(el)`,只需要根组件挂载就够了。那么看看根组件的实例化经历了什么。这里不考虑根组件也是自定义组件，考虑根组件是个`<div><abc></abc></div>`这样的情形而不是`<abc></abc>`的情形。后面针对子组件`abc`的渲染再来执行，当然如果根组件直接是这样的`<abc></abc>`实际上就是`abc`的渲染，但是为了体现上下文的友好和上下文传递属性的直观性，先只考虑`<div><abc></abc></div>`，先渲染`<div><abc></abc></div>`再渲染`<abc></abc>`里面的内容，这样的上下文的逻辑较清晰。
 
     const vm: Component = this
     vm._uid = uid++
     vm._isVue = true
-首先把this指向一个vm，也就是根组件实例，然后_uid = uid++,根组件的uid为0，然后isVue赋值为true，options._isComponent显然是没有的，于是就会运行这里。
+
+首先把this指向一个vm，也就是根组件实例，然后`_uid = uid++`,根组件的`uid`为0，然后`isVue`赋值为`true`，`options._isComponent`显然是没有的，于是就会运行这里。
+
     vm.$options = mergeOptions(
 	    resolveConstructorOptions(vm.constructor),
 	    options || {},
 	    vm
       )
-首先mergeOptions是就是把Options里面的属性进行合并，根据不同字段策略会不同，比如hook会把重复的值进行合并成数组，components，directives，filters这些会把合并的内容也就是parent的内容，放在__proto__上,methods,props,computed基本上是子组件有定义，就用子组件的，data（）因为是函数返回对象，因此合并的时候，其实是调用函数之后，再合并，以子组件的为准，watch跟hook类似，同样的字段的会合并成一个大数组。类似的这些细节在options.js中，并且extend方法里面会用到。<br/>
+
+首先`mergeOptions`是就是把`Options`里面的属性进行合并，根据不同字段策略会不同，比如`hook`会把重复的值进行合并成数组，`components`，`directives`，`filters`这些会把合并的内容也就是`parent`的内容，放在`__proto__`上,`methods`,`props`,`computed`基本上是子组件有定义，就用子组件的，`data（）`因为是函数返回对象，因此合并的时候，其实是调用函数之后，再合并，以子组件的为准，`watch`跟`hook`类似，同样的字段的会合并成一个大数组。类似的这些细节在`options.js`中，并且`extend`方法里面会用到。<br/>
 vm.constructor就是Vue，所以resolveConstructorOptions的处理方法是:
 
     function resolveConstructorOptions (Ctor: Class<Component>) {
@@ -39,7 +42,8 @@ vm.constructor就是Vue，所以resolveConstructorOptions的处理方法是:
 	      }
 	      return options
     }
-首先拿到Vue.options,在Global Vue中我们可以看到，初始化Vue的时候，options的属性有下面这几个
+
+首先拿到`Vue.options`,在`Global Vue`中我们可以看到，初始化`Vue`的时候，`options`的属性有下面这几个
 
 
       Vue.options.components = Object.create(null)
@@ -52,10 +56,11 @@ vm.constructor就是Vue，所以resolveConstructorOptions的处理方法是:
       // 这里也写进去
       Vue.options.components = {keepAlive,Transition,TransitionGroup}
 
-Ctor.super是不存在的，这个函数对于Vue的处理只提取了上面这些属性。然后将上面这些属性跟用户传入的options进行一定策略的合并，注意一件事,根组件vm.$options就是为用户传入的options跟Vue的options合并的结果。然后赋值一个Vm._renderProxy = vm,如果在开发模式上面你，会initProxy，这里主要对render函数做一个代理，如果render有错，能够及时得到反馈，通过proxy来设置has和get的trap来反馈。然后vm._self = vm;
+`Ctor.super`是不存在的，这个函数对于`Vue`的处理只提取了上面这些属性。然后将上面这些属性跟用户传入的`options`进行一定策略的合并，注意一件事,根组件`vm.$options`就是为用户传入的`options`跟`Vue`的`options`合并的结果。然后赋值一个`Vm._renderProxy = vm`,如果在开发模式上，会`initProxy`，这里主要对`render`函数做一个代理，如果`render`有错，能够及时得到反馈，通过`proxy`来设置`has`和`get`的`trap`来反馈。然后`vm._self = vm`;
 
     vm._renderProxy = vm
     vm._self = vm
+
 走到这里根组件（后面叫root）初始化的前期工作做完。下面是一系列的函数。
 
     initLifecycle（vm）
@@ -66,13 +71,14 @@ Ctor.super是不存在的，这个函数对于Vue的处理只提取了上面这�
     initState(vm)
     initProvide(vm)
     callHook(vm, 'created')
+
 下面来解析针对root这一些列的初始化工作：
 ## initLifecycle（vm） ##
-options = vm.$options，拿到$options,拿到options.parent,判断是不是抽象组件，这里不是,但是同时也没有parent因此这里不会进行$parent和$children的遍历和收集操作,vm.$parent=parent，这里没有,vm.$root = vm,vm$children = [],vm.$refs = {},vm._wathcer = null然后一些列的标志位初始化。
+`options = vm.$options`，拿到`$options`,拿到`options.parent`,判断是不是抽象组件，这里不是,但是同时也没有`parent`因此这里不会进行`$parent`和`$children`的遍历和收集操作,`vm.$parent=parent`，这里没有,`vm.$root = vm`,`vm.$children = []`,`vm.$refs = {}`,`vm._wathcer = null`然后一些列的标志位初始化。
 
     const options = vm.$options // 之前合并的options
     parent = options.parent // undefined,不存在,但是注意在root组件所在的上下文中的子组件,实例化的时候，root会把自己放在里面,但是在root初始化的时候这里是undefined，任何事情总有个开头的初始化工作才有后续的操作。
-    vm.$parent = parent //undefined ,针对root
+    vm.$parent = parent //undefined ,相对root来说没有parent
     vm.$root = vm；// 这里显然就是给自己,root
     vm.$children = []
     vm.$refs = {}
@@ -84,15 +90,15 @@ options = vm.$options，拿到$options,拿到options.parent,判断是不是抽�
     vm._isBeingDestroyed = false
 
 ## initEvents(vm) ##
-这个events不是dom的原生事件，而是vue的事件系统，它是通过在vm._events上维护一些方法集合，来进行on,off,once,emit操作。<br/>
-对于root基本上就只做了2件事，创建一个_events对象,设置标志位_hasHookEvent = false
+这个`events`不是`dom`的原生事件，而是`vue`的事件系统，它是通过在`vm._events`上维护一些方法集合，来进行on,off,once,emit操作。<br/>
+对于`root`基本上就只做了2件事，创建一个`_events`对象,设置标志位`_hasHookEvent = false`
 
     vm._events = Object.create(null)
     vm._hasHookEvent = false
     listeners = vm.$options._parentListeners //这里没有_parentListener所以更新事件不执行
 
 ## initRender(vm) ##
-render是要是负责创建关于渲染工作的，比如vnode的生成，比如针对dom的创建的update的绑定。下面看看初始化了哪些东西。
+`render`是要是负责创建关于渲染工作的，比如vnode的生成，比如针对dom的创建的update的绑定。下面看看初始化了哪些东西。
 
     vm._vnode = null
     vm._staticTrees = null
@@ -106,13 +112,13 @@ render是要是负责创建关于渲染工作的，比如vnode的生成，比如
     defineReactive(vm, '$attrs', parentData && parentData.attrs, null, true)
     defineReactive(vm, '$listeners', vm.$options._parentListeners, null, true)
 
-最后的定义响应式，实际上就是this.$attr能够访问parentData.attrs,this.$listener能够访问vm.$options._parentListeners
+最后的定义响应式，实际上就是`this.$attr`能够访问`parentData.attrs`,`this.$listener`能够访问`vm.$options._parentListeners`
 ## callHook(vm, 'beforeCreate') ##
 beforeCreate钩子函数调用
 ## initInjections(vm) ##
-这里就是把vm上面绑定inject对象中的属性，里面的属性值，来自于最近的拥有同样属性的parent组件，找不到值的话会一直遍历到root，比如inject:['aaa'],那么就会到parent中去找aaa，然后this.aaa = paretn.aaa
+这里就是把vm上面绑定inject对象中的属性，里面的属性值，来自于最近的拥有同样属性的parent组件，找不到值的话会一直遍历到root，比如`inject:['aaa']`,那么就会到`parent`中去找`aaa`，然后`this.aaa = paretn.aaa`
 ## initState(vm) ##
-initState是个相当重要的阶段，基本上属于核心的初始化，在这里在vm._wathcers = [];它们做的工作基本上就是在$options中找到这几个属性，然后由于这几个属性都是options上面的，所以要么代理给vm,要么直接vm.xxx = xxx,最后保证vm.xxx能去对应的地方访问到属性，而不是vm.methods.xxx,vm._data.xxx，state这一块需要单独抽取出来写。
+`initState`是个相当重要的阶段，基本上属于核心的初始化，在这里在`vm._wathcers = []`;它们做的工作基本上就是在`$options`中找到这几个属性，然后由于这几个属性都是`options`上面的，所以要么代理给vm,要么直接`vm.xxx = xxx`,最后保证`vm.xxx`能去对应的地方访问到属性，而不是`vm.methods.xxx`,`vm._data.xxx`，`state`这一块需要单独抽取出来写。
 
     vm._watchers = []
     initProps(vm, opts.props)
@@ -122,18 +128,21 @@ initState是个相当重要的阶段，基本上属于核心的初始化，在�
     initWatch(vm, opts.watch)
 
 ## initProvide(vm) ##
-provide是这个组件作为parent会影响下面子组件的里面的inject的值，基本上处理inject属性，就是把inject放到vm._provided上面。
+provide是这个组件作为parent会影响下面子组件的里面的inject的值，基本上处理inject属性，就是把inject里面的值作为键值然后在`vm._provided`上面找,elementUI里面经常是用`this`当成provide,也就parent组件的所有值都provide给了child。
 
     vm._provided = typeof provide === 'function'
       ? provide.call(vm)
       : provide
+
 ## callHook(vm, 'created') ##
-运行到这里root触发created,如果有，这个时候new Vue({})的事情已经做完了那么为了显示页面需要去挂载，调用vm.$mount函数。vm.$mount函数是一个存在render就render出vnode，然后根据vnode去生成dom的过程。西面继续解析挂载的过程，只有这个过程进行了才有后续的子组件的实例创建。
+运行到这里root触发created,如果有，这个时候new Vue({})的事情已经做完了那么为了显示页面需要去挂载，调用`vm.$mount`函数。`vm.$mount`函数是一个存在`render`就render出vnode，然后根据vnode去生成dom的过程。下面继续解析挂载的过程，只有这个过程进行了才有后续的子组件的实例创建。
 ## $mount ##
-首先要明确的是通常我们都是写的template标签，template标签目前还没有被解析成render函数，因此针对需要complier模块去把template选项解析并生成render，同时这里也会告诉我们，直接使用render的性能会更好些，第一不需要额外引入complier，第二少了complie这个过程。但是无论如何，好用快速开发出东西，牺牲一点点性能是能够接受的，因此通常这里会有一个解析模板的过程。如果只提供了template的属性，那么需要在执行$mount之前插入一个complier的操作。举出前面的例子。<div><abc></abc></div>,这样一个模板（当然这里只是为说明情况，后续的abc的解析会增加若干个东西，来保证abc初始化的过程尽量多跑完分支代码，而不是直接跳过）最终会解析成:
+首先要明确的是通常我们都是写的template标签，template标签目前还没有被解析成render函数，因此针对需要complier模块去把template选项解析并生成render，同时这里也会告诉我们，直接使用render的性能会更好些，第一不需要额外引入complier，第二少了complie这个过程。但是无论如何，好用快速开发出东西，牺牲一点点性能是能够接受的，因此通常这里会有一个解析模板的过程。如果只提供了template的属性，那么需要在执行$mount之前插入一个complier的操作。举出前面的例子。`<div><abc></abc></div>`,这样一个模板（当然这里只是为说明情况，后续的abc的解析会增加若干个东西，来保证abc初始化的过程尽量多跑完分支代码，而不是直接跳过）最终会解析成:
 
     '\_c('div',[\_c('abc')])'
+
 在浏览器中,$mount(el),这严格来说这个el属于一个dom，因此属于平台代码，但是这里也提一下，实际上这个el是通过querySelector（el）来拿到这个元素。
+
     el = el && query(el)
     const options = this.$options
     if (template) { 
@@ -151,7 +160,8 @@ provide是这个组件作为parent会影响下面子组件的里面的inject的�
 
     Vue.prototype.$mount 
     Vue.prototype.__patch__ = inBrowser ? patch : noop
-可以看到$mount实际上是在运行时才能决定的，原生的$mount代码很简单就是:
+
+可以看到`$mount`实际上是在运行时才能决定的，原生的$mount代码很简单就是:
 
     Vue.prototype.$mount = function (
       el?: string | Element,
@@ -160,7 +170,8 @@ provide是这个组件作为parent会影响下面子组件的里面的inject的�
       el = el && inBrowser ? query(el) : undefined
       return mountComponent(this, el, hydrating)
     }
-需不需要complier，这个不同版本的vue最终都不一样,比如runtime就没有complier,这里不讨论这个，总而言之options.render已经存在，因此开始调用mountComponent，现在可以回到核心代码。
+
+需不需要complier，这个不同版本的vue最终都不一样,比如runtime就没有complier,这里不讨论这个，总而言之`options.render`已经存在，因此开始调用mountComponent，现在可以回到核心代码。
 ## mountComponent ##
 首先vm.$el = el;这里的el为一个dom元素。然后调用beforeMount钩子，调用完成后，绑定一个watcher的回调函数，这个wathcer属于vm的wathcer，它职责就是更新视图，收集新的依赖，删除已经没有的依赖，总而言之就是管理依赖。代码如下：
 
@@ -170,7 +181,8 @@ provide是这个组件作为parent会影响下面子组件的里面的inject的�
       vm._update(vm._render(), hydrating)
     }
     vm._watcher = new Watcher(vm, updateComponent, noop)
-watcher整体如何运行的会单独抽取出来写，这里不讨论，这里只讨论组件初始化跟dom渲染有关系的部分。在new Wacher，watcher本身也有自己的id，这样可以区分是哪个watcher，参数传入了root实例和updateComponent函数，初始化后，watcher上面的vm = 传入的组件对象，这里是root，然后在_watchers上面压入当前的watcher，相当于一个watcher大仓库收集各种watcher，然后初始化id，限于篇幅这里只讨论，跟组件初始化和dom更新有关系的部分。
+
+watcher整体如何运行的会单独抽取出来写，这里不讨论，这里只讨论组件初始化跟dom渲染有关系的部分。在new Wacher，watcher本身也有自己的id，这样可以区分是哪个watcher，参数传入了root实例和updateComponent函数，初始化后，watcher上面的vm = 传入的组件对象，这里是root，然后在`_watchers`上面压入当前的watcher，相当于一个watcher大仓库收集各种watcher，然后初始化id，限于篇幅这里只讨论，跟组件初始化和dom更新有关系的部分。
 
     this.vm = vm
     vm._watchers.push(this)
@@ -185,13 +197,15 @@ watcher整体如何运行的会单独抽取出来写，这里不讨论，这里�
      vm._update(vm._render(), hydrating)
 
 ## vm._render() ##
-render就是生成vnode，目前options中只有render函数，而没有vnode，因此先把vm.$options中抽取3个属性出来render,staticRenderFns,_parentVnode。
+render就是生成vnode，目前options中只有render函数，而没有vnode，因此先把vm.$options中抽取3个属性出来render,staticRenderFns,`_parentVnode`。
+
     const {
       render,
       staticRenderFns,
       _parentVnode // undefined
     } = vm.$options
-针对于Root,$options中的_parentVnode为undefined，然后看vm._isMounted，这里为false，不执行内部的逻辑，注意vm.$scopedSlots是在这里获取的，这里也没有,staticRenderFns这里也没有。
+
+针对于`Root,$options`中的`_parentVnode`为undefined，然后看`vm._isMounted`，这里为false，不执行内部的逻辑，注意`vm.$scopedSlots`是在这里获取的，这里也没有,staticRenderFns这里也没有。
 
     if (vm._isMounted) { // 起初这里是undefined所以不执行
       // clone slot nodes on re-renders
@@ -208,10 +222,13 @@ render就是生成vnode，目前options中只有render函数，而没有vnode，
     }
     // 这里在vm.$vnode上面放入_parentVnode,这里为undefined
     vm.$vnode = _parentVnode // undefined
-运行到这里下面要执行render函数了，这里注意一个细节，vm.$createElement,render函数的第一个参数传入的是vm.$createElement,这里主要是针对用户自定义的render(h) {return h},由于前面的代码是使用的是\_c,它属于Vue.Prototype上面的，因此不需要依赖此参数，但是本质调用的是一样的。
+
+运行到这里下面要执行render函数了，这里注意一个细节，`vm.$createElement`,render函数的第一个参数传入的是`vm.$createElement`,这里主要是针对用户自定义的`render(h) {return h}`,由于前面的代码是使用的是\_c,它属于Vue.Prototype上面的，因此不需要依赖此参数，但是本质调用的是一样的。
+
     vnode = render.call(vm._renderProxy, vm.$createElement)
     vnode.parent = _parentVnode // undefined
     return vnode
+
 下面来分析vnode的生成:
 针对前面提到的'\with(this){_c('div',[\_c('abc')])}',由于with把this放在了作用域链的顶部，因此_c就是访问的this.\_c,它就是createElement。这个函数里面有嵌套函数所以在执行的顺序是:
 
@@ -219,32 +236,47 @@ render就是生成vnode，目前options中只有render函数，而没有vnode，
     var vnode2 = _c('div',[vnode]) 
 下面来看看\c('abc')
 ## create-Element 这一步开始是实例化abc组件的前期工作  ##
-现在要注意这个createElement的现在的第一个参数是root，vm._c = (a, b, c, d) => createElement(vm, a, b, c, d, false)，createElement还进行了一次参数的标准化操作，比如第二参数默认是data，但是没有data的话难道我还要传个null来占位么，于是这里根据参数的类型可以进行适当的调整，比如data位置上的参数是个数组，那么就当这个数组为children参数，而data=null，标准化参数之后，再执行_createElement，下面开始分析。由于abc不是保留标签名，因此会走这个分支。
+现在要注意这个`createElement`,现在的第一个参数是`root`，`vm._c = (a, b, c, d) => createElement(vm, a, b, c, d, false)`，`createElement`还进行了一次参数的标准化操作，比如第二参数默认是`data`，但是没有`data`的话难道我还要传个`null`来占位么，于是这里写了一段适配逻辑，根据参数的类型可以进行适当的调整，比如`data`位置上的参数是个数组，那么就当这个数组为`children`参数，而`data=null`，标准化参数之后，再执行`_createElement`，下面开始分析。由于`abc`不是保留标签名，因此会走这个分支,这里渲染`<abc>`肯定有个一个上下文,`<abc>`标签存在于根组件的模板中，这个上下文就是根组件，为什么需要这个上下文，因为有些状态是需要父子组件进行传递的，同时上下级的层级关系也能够明确。
 
     if (isDef(Ctor = resolveAsset(context.$options, 'components', tag))) {
     	vnode = createComponent(Ctor, data, context, children, tag)
     }
-这里会从root中的components属性中拿到对应tag的component选项，注意这里是一个options的对象，就是.vue中的export default {}，里面的东西，下面看看createComponent做了什么。
+
+这里会从`root`中的`components`属性中拿到对应`tag`的`component`选项,比如现在这个tag叫abc，注意这里是一个`options`的对象，就是`.vue`中的`export default {}`里面的东西，下面看看`createComponent`做了什么。
+
 ##create-Element > createComponent ##
 
     const baseCtor = context.$options._base //这里的的context是root，root的_base显然就是Vue
-    Ctor = baseCtor.extend(Ctor) // 因为Cotr是对象，因此这里会参与执行extend然后变成构造函数
-extend执行了什么，简而言之，extend就是产生了一个基于baseCtor的子类，这里baseCtor就是Vue，相当于Class VueComponent extend Vue{}，这个过程会设置对应的cid，确保构造函数的唯一性，VueComponent的方法体跟Vue一毛一样，VueComponent既然是extend的子类(后面称呼为Sub)，那么就会从Vue上面拿到它的options，将Vue.options和extendOptions（用户定义的组件选项）进行一定规则的合并，最后将其赋值给Sub.options,同时Sub.prototype会指向Super.protoType,也就是Vue实例有的属性和方法，通过Sub也能访问到，然后将Sub['super'] = Vue,然后初始化一些全局的方法，初始化props和computed，最后会设定3个属性：
+    Ctor = baseCtor.extend(Ctor) // 因为Ctor是对象，因此这里会参与执行extend然后变成构造函数
+
+`extend`执行了什么，简而言之，`extend`就是产生了一个基于`baseCtor`的子类，这里`baseCtor`就是Vue，相当于`Class VueComponent extend Vue{}`，这个过程会设置对应的`cid`，确保构造函数的唯一性，`VueComponent`的方法体跟`Vue`一毛一样，`VueComponent`既然是extend的子类(后面称呼为Sub)，那么就会从`Vue`上面拿到它的`options`，将`Vue.options`和`extendOptions`（用户定义的组件选项）进行一定规则的合并，最后将其赋值给`Sub.options`,同时`Sub.prototype`会指向`Super.protoType`,也就是所有的`Vue`实例有的通用属性和方法，然后将`Sub['super'] = Vue`,然后初始化一些全局的方法，初始化`props`和`computed`，最后会设定3个属性：
 
     Sub.superOptions = Super.options
     Sub.extendOptions = extendOptions
     Sub.sealedOptions = extend({}, Sub.options)
-将这3个属性设置上去，能够很好地区分哪些是用户给的options，哪些是Vue的options，并且密封他们合并后最终的options，备个份。最后返回一个Sub,这一切行为基本上就是实现了一个类似Class Sub extends Vue{},感觉在Vue3.0的时候这里会不会通过Class来实现。那么extend返回的是个什么呢，就是一个跟Vue一模一样实现的函数，options通过用户传入的options和Vue的options合并后的结果，实例的方法可以通过原型链来找到Vue中绑定的实例方法。
-##create-Element >createComponent > 处理data##
-data = data|| {};//拿到data<br/>
-resolveConstructorOptions(Ctor)，该方法主要是在superOption修改的时候，重新更新options，这里Ctor是Sub函数，会找到Sub的super，也就是Vue，看上面的options跟superOptions是不是一个引用，基本上这里不会不一样，如果不一样就去拿到修改的options再来合并，也就是在Sub上去更新Vue中修改的options。<br/>
-data.model:这里扶着处理里V-model。<br/>
-Ctor.options.functional：是否是functional组件，如果是就去实例化FunctionalComponent，函数式组件没有state和instance。<br/>
-listeners = data.on,把data.on放入到listener中，也就是标签上定义的@click自定义事件<br/>
-data.on = data.nativeOn,将nativeOn放到data.on上面,作为dom生成后，去绑定成nativeEvent<br/>
-是否是抽象组件,如果是抽象组件，取出data.slot,data给个空对象，值保留slot，因为抽象组件只需要props，listeners和slot。<br/>
-mergeHooks(data),在data中放入hook属性，{init，insert，prepatch，destroy}<br/>
-const name = Ctor.options.name || tag,拿到name。<br/>
+
+将这3个属性设置上去，能够很好地区分哪些是用户给的`options`，哪些是Vue的`options`，并且密封他们合并后最终的options，备个份。最后返回一个Sub,这一切行为基本上就是实现了一个类似`Class Sub extends Vue{}`,感觉在Vue3.0的时候这里会不会通过Class来实现。那么extend返回的是个什么呢，就是一个跟`Vue`构造函数一模一样实现的函数，只是比Vue的基本构造函数多了用户传入的属性,`最终sub的options`它由用户传入的`options`和`Vue`的初始`options`按一定策略合并之后的结果，实例的方法可以通过原型链来找到`Vue`中绑定的通用方法，这些方法大多以`$`开头。
+
+##create-Element > createComponent > 处理data##
+
+data = data || {}; // 拿到data
+
+resolveConstructorOptions(Ctor)，该方法主要是在superOption修改的时候，重新更新options，这里Ctor是Sub函数，会找到Sub的super，也就是Vue，看上面的options跟superOptions是不是一个引用，基本上这里不会不一样，如果不一样就去拿到修改的options再来合并，也就是在Sub上去更新Vue中修改的options。
+
+data.model:这里负责处理里V-model。
+
+Ctor.options.functional：是否是functional组件，如果是就去实例化`FunctionalComponent`，函数式组件没有`state`和`instance`。
+
+listeners = `data.on`,把`data.on`放入到listener中，也就是标签上定义的`@click`这样的事件
+
+data.on = `data.nativeOn`,将`nativeOn`放到`data.on`上面,作为dom生成后，去绑定成`nativeEvent`
+
+是否是抽象组件,如果是抽象组件，取出data.slot,data给个空对象，值保留slot，因为抽象组件只需要props，listeners和slot。
+
+mergeHooks(data),在data中放入hook属性，{init，insert，prepatch，destroy}
+
+const name = Ctor.options.name || tag,拿到name。
+
 拿到以上这些组件，基本上，vnode就可以生成了，代码如下：
 
     const vnode = new VNode(
@@ -255,6 +287,7 @@ const name = Ctor.options.name || tag,拿到name。<br/>
       )
 
 最后返回vnode，运行到这里\_c("abc"),创建完毕。接下来执行vnode2 = _c('div',[vnode])
+
 ## _c('div',[vnode]) ##
 config.isReservedTag(tag),这里的是'div'是保留标签，因此直接创建Vnode。
 
