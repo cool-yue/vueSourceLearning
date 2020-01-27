@@ -1,7 +1,7 @@
 diff算法是程序上最小化的更新，它抛弃了严格地层次遍历，而是选择了几种情况，这样就把一次的复杂度转从n转化成了1，比如n个节点对比，取出新的节点，然后与旧的每一个都去做循环比对，这个复杂度是n，取而代之的是头头，头尾，尾头，尾尾的4种情况的比较，当这4种情况不满足的时候，最后根据key是否存在进行高效更新，如果key不存在就创建一个新的节点。下面来分析一下vue中的patchVnode的逻辑。
 
 
-当修改某个响应数据的时候，视图会重新渲染，这个过程基本上是vue的核心功能之一，由于在初始化在用户定义的options上进行加工，将对应的数据处理为响应数据，定义了一套get和set的方法，get用于收集依赖，set的用于通知变化产生，从而渲染视图去更新，下面总结一下这个更新的过程。首先假定先假定一个挂载好的模板如下：
+当修改某个响应数据的时候，视图会重新渲染，这个过程基本上是vue的核心功能之一，由于在初始化在用户定义的options上进行加工，将对应的数据处理为响应数据，定义了一套get和set的方法，get用于收集依赖，set的用于通知变化产生，从而渲染视图去更新，下面总结一下这个更新的过程。首先假定一个挂载好的模板如下：
 
     // 父组件
     <div><abc :aaa="bbb"><div>aaa</div></abc></div>
@@ -32,7 +32,7 @@ diff算法是程序上最小化的更新，它抛弃了严格地层次遍历，�
       dep.notify()
     }
 
-通过上面的代码，可以看到vue判断值是否改动使用的是newVal === value，如果shallow传入的是false，就是非浅状态，同时值为对象的情况下，还会深入进行内部属性的响应式处理，默认是非浅的，所以会深入遍历，一层一层递归，去将数据进行依赖的绑定。最终执行dep.notify()，下面看看notify做了什么。
+通过上面的代码，可以看到vue判断值是否改动使用的是`newVal === value`，如果`shallow`传入的是`false`，就是非浅状态，同时值为对象的情况下，还会深入进行内部属性的响应式处理，默认是非浅的，所以会深入遍历，一层一层递归，去将数据进行依赖的绑定。最终执行`dep.notify()`，下面看看`notify`做了什么。
 
       notify () {
     	// stabilize the subscriber list first
@@ -41,7 +41,7 @@ diff算法是程序上最小化的更新，它抛弃了严格地层次遍历，�
       		subs[i].update()
     	}
       }
-notify的逻辑非常简单就是循环遍历，该属性的set函数闭包环境中的dep的notify方法，这个notify方法就是遍历dep对象的subs属性，这个subs里面装有依赖这个属性的watcher，因此调用他们进行update（），根据上面定义的渲染模板，可以知道bbb属性属于data属性里面的，data属性会被收集到vm._watcher,作为render watcher，作为渲染视图的wathcer，这里的vm就是上面模板的父组件对象，所以当前这里就是vm._watcher调用update，下面看看update的过程：
+notify的逻辑非常简单就是循环遍历，该属性的set函数闭包环境中的dep的`notify`方法，这个`notify`方法就是遍历`dep`对象的`subs`属性，这个`subs`里面装有依赖这个属性的`watcher`，因此调用他们进行`update（）`，根据上面定义的渲染模板，可以知道`bbb`属性属于`data`属性里面的，`data`属性会被收集到`vm._watcher`,作为`render watcher`，即作为渲染视图的`wathcer`，这里的`vm`就是上面模板的父组件对象，所以当前这里就是`vm._watcher`调用`update`，下面看看`update`的过程：
 
       update () {
     	/* istanbul ignore else */
@@ -54,7 +54,7 @@ notify的逻辑非常简单就是循环遍历，该属性的set函数闭包环�
     	}
       }
 
-由于watcher存在复用，所以这里有2种情况，带lazy的代表的是计算属性，设置了sync为true，代表的是同步，那么会立即执行run，通常情况下这里不会设置sync，所以这里会执行queueWatcher（this），this这里代表当前的wathcer，也就是父组件的render watcher，下面先看看queueWatcher后面可能会用到的变量。
+由于`watcher`存在复用，所以这里有2种情况，带lazy的代表的是计算属性，设置了`sync`为`true`，代表的是同步，那么会立即执行`run`，通常情况下这里不会设置`sync`，所以这里会执行`queueWatcher（this）`，`this`这里代表当前的`wathcer`，也就是父组件的`render watcher`，下面先看看`queueWatcher`后面可能会用到的变量。
 
     let waiting = false
     let flushing = false
@@ -64,7 +64,7 @@ notify的逻辑非常简单就是循环遍历，该属性的set函数闭包环�
     const queue: Array<Watcher> = []
     const activatedChildren: Array<Component> = []
 
-初始化的时候，上面这些变量进行了初值初始化，其中waiting===flushing===false，index===0，queue是一个装有watcher的数组。下面看看queueWatcher的逻辑：
+初始化的时候，上面这些变量进行了初值初始化，其中`waiting===flushing===false`，`index===0`，`queue`是一个装有`watcher`的数组。下面看看`queueWatcher`的逻辑：
 
     function queueWatcher (watcher: Watcher) {
       const id = watcher.id
@@ -89,8 +89,8 @@ notify的逻辑非常简单就是循环遍历，该属性的set函数闭包环�
     }
     }
 
-如上代码，首先拿到wathcer的id，注意同一个vm中watcher的id是通过顺序是，computed < user watch < render watcher,这么定义是有道理的，因为user watcher可能会去观察计算属性，比如当修改一个计算属性依赖的属性a的时候，由于计算属性先初始化所以computed watcher最早出现在a的对应的dep的subs中，因此computed watcher会去把dirty设置为true，然后才是a的subs中的user watcher,正是由于computed watcher把dirty改为了true之后，user watcher才能去get到新值，从而触发回调，最终执行的是render watcher，由于watcher的init的过程，伴随着一个自增长的数字，因此越先init的越小，越后的越大。<br/>
-拿到watcher的id之后，会先判断has这个"类set"中有没有这个watcher，如果有，就不放入，这样防止同一个watcher反复执行。然后判断是否waiting，如果为false，表示当前的patch还没开始，所以会运行。
+如上代码，首先拿到`wathcer`的`id`，注意同一个`vm`中`watcher`的`id`是通过顺序是，`computed` < `user watch` < `render watcher`,这么定义是有道理的，因为`user watcher`可能会去观察计算属性，比如当修改一个计算属性依赖的属性`a`的时候，由于计算属性先初始化所以`computed watcher`最早出现在`a`的对应的`dep`的`subs`中，因此`computed watcher`会去把`dirty`设置为`true`，然后才是`a`的`subs`中的`user watcher`,正是由于`computed watcher`把`dirty`改为了`true`之后，`user watcher`才能去get到新值，从而触发回调，最终执行的是`render watcher`，之所以在这个时候可以执行是因为前面已已经具备了将新值拿到的条件了（dirty变为true后，才会重新计算新值，如果这个新值都没计算出来就去渲染模板，那重新渲染模板无任何意义），由于`watcher`的`init`的过程，伴随着一个自增长的数字，因此越先`init`的越小，越后的越大。<br/>
+拿到`watcher`的`id`之后，会先判断`has`这个"类set"中有没有这个`watcher`，如果有，就不放入，这样防止同一个watcher反复执行。然后判断是否`waiting`，如果为`false`，表示当前的`patch`还没开始，所以会运行如下代码，将`waiting`设置为`true`。
 
 
      if (!waiting) {
@@ -98,12 +98,12 @@ notify的逻辑非常简单就是循环遍历，该属性的set函数闭包环�
     	nextTick(flushSchedulerQueue)
      }
 
-把waiting设置为true，表示已经在flushingQueue了，在flushing没完成之前，不会再执行flushSchedulerQueue，同时把flushSchedulerQueue放进nextTick，也就是在同步代码运行完之后，开始清理queue，下面看flushSchedulerQueue的逻辑。
+把`waiting`设置为`true`，表示已经在`flushingQueue`了，在`flushing`没完成之前，不会再执行`flushSchedulerQueue`，同时把`flushSchedulerQueue`放进`nextTick`，也就是在同步代码运行完之后，开始清理`queue`，下面看`flushSchedulerQueue`的逻辑。
 
       flushing = true
       let watcher, id
 
-将flushing标志位设置为true，这样防止后面添加watcher的时候，不仅仅是简单的push，而是通过id来正确地插入到正确的位置，这个细节如前面说到的。
+将`flushing`标志位设置为`true`，这样防止后面添加`watcher`的时候，不仅仅是简单的`push`，而是通过`id`来正确地插入到`queue`正确的位置，这个细节如前面说到的。
 
       // Sort queue before flush.
       // This ensures that:
@@ -129,7 +129,7 @@ notify的逻辑非常简单就是循环遍历，该属性的set函数闭包环�
     	has[id] = null
     	watcher.run()
     }
-然后按照排好序的queue一个一个去执行run方法。这里有一个判断无限递归的方式，就是当同一个watcher跑了100次之后，会给出无限递归的警告。
+然后按照排好序的`queue`一个一个去执行`run`方法。这里有一个判断无限递归的方式，就是当同一个`watcher`跑了100次之后，会给出无限递归的警告。
 
     if (process.env.NODE_ENV !== 'production' && has[id] != null) {
       circular[id] = (circular[id] || 0) + 1
@@ -145,34 +145,34 @@ notify的逻辑非常简单就是循环遍历，该属性的set函数闭包环�
     break
       }
     }
-从这里开始就循环去清理这个queue了，回到之前提到的修改的 `this.bbb = "changed"`,于是bbb属于data，它会触发renderWatcher，所以现在开始执行watcher的run方法。
+从这里开始就循环去清理这个queue了，回到之前提到的修改的 `this.bbb = "changed"`,由于`bbb`属于`data`，它会触发`renderWatcher`，所以现在开始执行`watcher`的`run`方法。
     run () { 
     	const value = this.get()
     }
-对于render watcher只会运行这里，这个get（）方法就是updateComponent
+对于`render watcher`只会运行这里，这个get（）方法就是`updateComponent`
     
     updateComponent = () => {
       vm._update(vm._render(), hydrating)
     }
-vm先通过render去生成vnode对象，作为新的vnode，然后_update().
+`vm`先通过`render`去生成`vnode`对象，作为新的`vnode`，然后`_update()`.
 
     const vm: Component = this
     if (vm._isMounted) {
       callHook(vm, 'beforeUpdate')
     }
-首先触发一个beforeUpdate的钩子函数，然后开始切换上下文了以及存放新老节点。
+首先触发一个`beforeUpdate`的钩子函数，然后开始切换上下文了以及存放新老节点。
 
     const prevEl = vm.$el
     const prevVnode = vm._vnode
     const prevActiveInstance = activeInstance
     activeInstance = vm
     vm._vnode = vnode
-vm.$el为老的dom，vm._vnode为老的vnode，activeInstance为上一个组件实例的上下文，vm为当前实例上下文，因此将    `prevActiveInstance = activeInstance，activeInstance = vm`，将新生成的节点赋值给vm._vnode,注意_vnode是render生成的vnode，然后开始patch。
+`vm.$el`为老的dom，`vm._vnode`为老的`vnode`，`activeInstance`为上一个组件实例的上下文，vm为当前实例上下文，因此将    `prevActiveInstance = activeInstance，activeInstance = vm`，将新生成的节点赋值给`vm._vnode`,注意`_vnode`是`render`生成的`vnode`，然后开始`patch`。
 
     vm.$el = vm.__patch__(prevVnode, vnode)
     activeInstance = prevActiveInstance
 
-这个方法就是更新dom的方法，更新完成后，切换上下文。下面看看`__patch__`做了什么工作。在web环境中,__patch__就是patch.
+这个方法就是更新dom的方法，更新完成后，切换上下文。下面看看`__patch__`做了什么工作。在web环境中,`__patch__`就是`patch`.
 
     Vue.prototype.__patch__ = patch;
 
@@ -182,14 +182,14 @@ vm.$el为老的dom，vm._vnode为老的vnode，activeInstance为上一个组件�
     invokeInsertHook(vnode, insertedVnodeQueue, isInitialPatch)
     return vnode.elm
 
-这句话运行完了，就表示2个节点更新完了，然后调用insertHook，insertHook主要做下面这些工作，如果是`isInitialPatch`，那么就会调用mounted的钩子，如果已经mouted，会去处理keepAlive的情况，最后返回更新好的dom。下面着重分析patchVnode做了什么。
+这句话运行完了，就表示2个节点更新完了，然后调用`insertHook`，`insertHook`主要做下面这些工作，如果是`isInitialPatch`，那么就会调用`mounted`的钩子，如果已经`mouted`，会去处理`keepAlive`的情况，最后返回更新好的`dom`。下面着重分析`patchVnode`做了什么。
 ## patchVnode ##
-通常在更新的时候,会是这样形式的调用,patch(oldVode,vode),下面来分析里面的逻辑,如果oldVnode === vnode，那么就不用更新。
+通常在更新的时候,会是这样形式的调用,`patch(oldVode,vode)`,下面来分析里面的逻辑,如果`oldVnode === vnode`，那么就不用更新。
 
     if (oldVnode === vnode) {
       return
     }
-针对上面的情况，对应的vnode的形式如下面这样:
+针对前面举的例子，例子中对应的`vnode`的形式如下面这样:
 
     // 父组件
     <div><abc :aaa="bbb"><div>aaa</div></abc></div>
@@ -231,7 +231,7 @@ vm.$el为老的dom，vm._vnode为老的vnode，activeInstance为上一个组件�
          vnode.componentInstance = oldVnode.componentInstance
          return
     }
-如果上面的条件都不满足，那么拿到vnode.data,判断data中有没有prepatch的hook，如果有就运行prepatch（oldVnode，vnode），针对上面的vnode，由于最外层是个div标签，属于html原生标签，这里在生成vnode的时候，并不会有data.hook.prepatch，因此这里会跳过。
+如果上面的条件都不满足，那么拿到vnode.data,判断data中有没有prepatch的hook，如果有就运行prepatch（oldVnode，vnode），针对上面的vnode，由于最外层是个div标签，属于html原生标签，这里在生成vnode的时候，并不会有`data.hook.prepatch`，因此这里会跳过。
 
     let i
     const data = vnode.data
@@ -295,7 +295,7 @@ updateChildren就是典型的diff比较过程,具体看源码，主要运行下�
 		    )
       }
 
-之所以要做这个prePatch的原因是,这是vue组件实例的一些属性的覆盖，如果只是单纯的vnode，vnode上面的属性就足够反映当前组件的所有状态，而vue-component的组件，严格来讲它是依靠js对象来进行交互的，真正的dom实际上是对象options上面的render，而listener这些都需要放在vue对象上面，因此这个prepatch就是针对vue实例，用新的属性值覆盖掉旧的属性值。
+之所以要做这个`prePatch`的原因是,这是vue组件实例的一些属性的覆盖，如果只是单纯的vnode，vnode上面的属性就足够反映当前组件的所有状态，而vue-component的组件，严格来讲它是依靠js对象来进行交互的，真正的dom实际上是对象options上面的render，而listener这些都需要放在vue对象上面，因此这个prepatch就是针对vue实例，用新的属性值覆盖掉旧的属性值。
 
 正是因为有实例，{Ctor,propsData,listener,tag,children},这里面的几个属性是普通dom元素不具备的，严格来收这些是vm对象存在的属性，并且里面的属性值，会影响最终dom的效果，因此它的信息需要以赋值的形式去更新，这几个属性，比如children换了，比如propsData里面的值换了，那么最后的视图是不一样的，同时新的vnode创建了，显然不应该再以新的vnode去创建instance，这样就没有diff的意义了，现在的问题是，在通过_render创建了新的Vnode的时候，实际上通过模板的解析已经把props，children，listener这些变化给放入了新生成的vnode.componentOptions中了，这些只有vue-component才具备这些东西,所以vnode.ComponentOptions里面存有更新后的propsData,listener,children。
 
