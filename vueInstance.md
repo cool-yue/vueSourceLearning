@@ -267,11 +267,11 @@ data.model:这里负责处理里V-model。
 
 Ctor.options.functional：是否是functional组件，如果是就去实例化`FunctionalComponent`，函数式组件没有`state`和`instance`。
 
-listeners = `data.on`,把`data.on`放入到listener中，也就是标签上定义的`@click`这样的事件
+listeners = `data.on`,把`data.on`放入到listener中，也就是标签上定义的`@`后面的东西这样的事件
 
-data.on = `data.nativeOn`,将`nativeOn`放到`data.on`上面,作为dom生成后，去绑定成`nativeEvent`
+data.on = `data.nativeOn`,将`nativeOn`放到`data.on`上面,作为dom生成后，去绑定成`nativeEvent`,natvie事件是通过native修饰符来解析到`data.nativeOn`中去的。
 
-是否是抽象组件,如果是抽象组件，取出data.slot,data给个空对象，值保留slot，因为抽象组件只需要props，listeners和slot。
+是否是抽象组件,如果是抽象组件，取出`data.slot`,data给个空对象，值保留slot，因为抽象组件只需要`props`，`listeners`和`slot`。
 
 mergeHooks(data),在data中放入hook属性，{init，insert，prepatch，destroy}
 
@@ -286,22 +286,27 @@ const name = Ctor.options.name || tag,拿到name。
 	    asyncFactory
       )
 
-最后返回vnode，运行到这里\_c("abc"),创建完毕。接下来执行vnode2 = _c('div',[vnode])
+最后返回vnode，运行到这里`_c("abc")`,创建完毕。接下来执行`vnode2 = _c('div',[vnode])`
 
 ## _c('div',[vnode]) ##
+
 config.isReservedTag(tag),这里的是'div'是保留标签，因此直接创建Vnode。
 
     vnode = new VNode(
 	    config.parsePlatformTagName(tag), data, children,
 	    undefined, undefined, context
       )
-这样<div><abc></abc></div>的vnode生成好了,下面要继续执行vm._update(vnode)。<br/>
-vnode的生成的这个时候，根据template生成的代码，with（this）{aaa}，this是上下文vm，那么aaa不是字符串，aaa是变量，通过with（this）去context里面去取，相当于context.aaa,由于初始化initData，定义了getter，会触发依赖的收集，dep.depend()，这个时候收集是因为把模板有用到的变量收集，而不是一股脑全部收集起来。<br/>
-相比自己写的render，字符串上面解析，with（this）这样上下文环境就匹配上去了。而render里面需要用到this，这个this，指向的是vm._renderPorxy,在初始化的时候，这个就是上下文root，因此this.aaa,就是访问root.aaa如下面的代码：
+
+这样`<div><abc></abc></div>`的`vnode`生成好了,下面要继续执行`vm._update(vnode)`。
+
+`vnode`的生成的这个时候，根据`template`生成的代码，`with（this）{aaa}`，`this`是上下文`vm`，那么`aaa`不是字符串，`aaa`是变量，通过`with（this）`首先去这个`this`上下文中去找`aaa`属性，相当于`this.aaa`,由于初始化`initData`，定义了`getter`，会触发依赖的收集，`dep.depend()`，这个时候收集是因为把模板有用到的变量进行收集，而不是一股脑全部收集起来。
+
+相比自己写的`render`，字符串上面解析，`with（this）`这样上下文环境就匹配上去了。而`render`里面需要用到`this`，这个`this`，指向的是`vm._renderPorxy`,在初始化的时候，这个就是上下文`root`，因此`this.aaa`,就是访问`root.aaa`如下面的代码：
 
     vnode = render.call(vm._renderProxy, vm.$createElement)
     
 ## vm._update(vnode) ##
+
     vm: Component = this
     if (vm._isMounted) {
       callHook(vm, 'beforeUpdate')
@@ -311,7 +316,8 @@ vnode的生成的这个时候，根据template生成的代码，with（this）{a
     const prevActiveInstance = activeInstance
     activeInstance = vm
     vm._vnode = vnode
-在patch前会运行上面一段代码，由于dom还没生成，所以_isMounted还是false，vm.$el为querySelector返回的dom对象，将它给prevEl,也就是上个上一次的element，vm._node现在是undefined,activeInstance目前是个空，因为这是root的初始化，activeInstance对于_update是一个公共变量，然后把activeInstacne赋值给prevActiveInstance，然后把root赋值给activeInstance，最后把生成的新的vnode赋值给vm._vnode,也就是root的template产生的vnode，后面开始根据vnode插入dom了。
+
+在patch前会运行上面一段代码，由于dom还没生成，所以`_isMounted`还是false，`vm.$el`为`querySelector`返回的dom对象，将它给`prevEl`,也就是上个上一次的`element`，`vm._node`现在是`undefined`,activeInstance目前是个空，因为这是root的初始化，`activeInstance`对于`_update`是一个公共变量，然后把`activeInstacne`赋值给`prevActiveInstance`，然后把`root`赋值给`activeInstance`，最后把生成的新的`vnode`赋值给`vm._vnode`,也就是`root`的`template`产生的`vnode`，后面开始根据`vnode`插入dom了。
 
 
     if (!prevVnode) {
@@ -327,12 +333,14 @@ vnode的生成的这个时候，根据template生成的代码，with（this）{a
 	      // this prevents keeping a detached DOM tree in memory (#5851)
 	      vm.$options._parentElm = vm.$options._refElm = null
     }
-这里因为是root的第一次_update因此这里没有prevVnode,那么执行vm.__patch__方法，__patch__方法传入了6个参数，第一个参数为querySelector的dom，第二个为生成vnode，三四参数不管，五六参数为undefined，因为dom还没生成，vm.$options._parentElm,vm.$options._refElm,下面看看patch里面做了什么.
+
+这里因为是root的第一次`_update`因此这里没有`prevVnode`,那么执行`vm.__patch__`方法，`__patch__`方法传入了6个参数，第一个参数为querySelector的dom，第二个为生成vnode，三四参数不管，五六参数为undefined，因为dom还没生成，`vm.$options._parentElm`,`vm.$options._refElm`,下面看看patch里面做了什么.
 ## \_\_patch\_\_ ##
 就是调用patch方法，先看看patch几个参数传了什么。第一个参数是个dom，第二参数是生成的vnode，第四个传入的是false，第五个，第六个是undefined。
 
-    patch (oldVnode, vnode, hydrating, removeOnly, parentElm, refElm) 
-vnode代表这新版本的vnode，这里由于是初始化，oldVnode还没有，vnode为之前render生成的，由于vnode存在所以这里不运行，默认设置一个InitialPatch为false，设置一个变量装Vnode，const insertedVnodeQueue = []。
+    patch (oldVnode, vnode, hydrating, removeOnly, parentElm, refElm)
+
+vnode代表这新版本的vnode，这里由于是初始化，oldVnode还没有，vnode为之前render生成的，由于vnode存在所以这里不运行，默认设置一个InitialPatch为false，设置一个变量装Vnode，const `insertedVnodeQueue = []`。
 
     if (isUndef(vnode)) {
       // oldVnode触发DestroyerHook
@@ -341,37 +349,49 @@ vnode代表这新版本的vnode，这里由于是初始化，oldVnode还没有�
     }
     let isInitialPatch = false
     const insertedVnodeQueue = []
+
 下面根据oldVnode的类型来判断是怎么样的更新，这里有几种情况：
-1.如果oldVnode没定义也就是undefined，那么就是子组件挂载的过程，比如<abc>挂载在root中。<br/>
-2.如果oldVnode存在，那么有2种情况，如果oldVnode是Vnode类型，那么就是相当于数据修改，进行视图更新。<br/>
-3.oldVnode类型为dom元素，就把这个dom元素转化成为一个空vnode，这个空的vnode以这个元素的标签名为tag，并将elm设置为这个dom。可以理解为第一次根组件渲染的时候，它的上一个元素是querySelector那个Dom，要把根组件的vnode跟这个dom转化成的vnode进行patch<br/>
+1.如果oldVnode没定义也就是undefined，那么就是子组件挂载的过程，比如<abc>挂载在root中。
+
+2.如果oldVnode存在，那么有2种情况，如果oldVnode是Vnode类型，那么就是相当于数据修改，进行视图更新。
+
+3.oldVnode类型为dom元素，就把这个dom元素转化成为一个空vnode，这里表示是第一次渲染，这个空的vnode以这个元素的标签名为tag，并将elm设置vnode对应的dom。可以理解为第1次根组件渲染是参照这样一个初始状态来更新，所以oldvnode给一个空，表示初始状态oldVnode啥都没有，需要用户的vnode来填充这里,把这个初始dom转化成vnode对应的dom，这个过程叫patch。
+
 
     oldVnode = emptyNodeAt(oldVnode)
     const oldElm = oldVnode.elm
     const parentElm = nodeOps.parentNode(oldElm)
 
-拿到querySelector产生的dom，拿到这个dom的parent，一般情况下这里是body。然后开始创建元素了，也就是dom。
+拿到querySelector产生的dom，拿到这个dom的parent，一般情况下这里是body。然后开始创建html元素了。
+
 ## patch->createElm ##
+
 现在createElm传入的几个参数,createElm(vnode,insertedVnodeQueue, oldElm._leaveCb ? null : parentElm,nodeOps.nextSibling(oldElm)),第一个参数为生成的vnode，第二参数为一个空数组，第三个参数由于oldElm并没有_leaveCb因此，第四个参数为paretnElm,第四个参数为oldElm的下个兄弟元素。
 
     createElm (vnode, insertedVnodeQueue, parentElm, refElm, nested)
+
 第5个参数没有传也就是undefined，在vnode.isRootInsert = !nested,第五个参数在根组件更新的时候是true。
+
 ## patch->createElm->createComponent ##
-这个createComponent基本上是只过滤vue-component组件，换句话说也就是需要实例化的组件，现在vnode为根组件div abc div,来看看做了什么。<br/>
-拿到vnode的data，如果没有定义就什么也不做，没有data.hook.init什么也不做，没有vnode.componentInstance什么也不做，现在目前这些都不存在，那么开始返回的undefined，那么继续往下走。<br/>
+这个createComponent基本上是只需要vue-component组件，换句话说也就是需要实例化的组件非原生html标签，现在vnode为根组件`<div><abc></abc><div>`,来看看做了什么。
+
+拿到vnode的data，如果没有定义就什么也不做，没有data.hook.init什么也不做，没有vnode.componentInstance什么也不做，现在目前这些都不存在，那么开始返回的undefined，那么继续往下走。
+
 拿到 vnode.data，vnode.children,vnode.tag
 
     const data = vnode.data
     const children = vnode.children
     const tag = vnode.tag
 
-通过tag的值可以判断这是个什么组件，如果tag有，证明这是个正常的元素节点，如果没有tag那么可能是注释节点，不是注释节点，那么就是文本节点，取到vnode.text穿件成dom，然后给vnode.elm,然后把vnode.elm插入到parentElm下面refElm之前。通常这里一般不会是commetn和text，正常情况下都有tag，下面分析由tag的情况下。
+通过tag的值可以判断这是个什么组件，如果tag有，证明这是个正常的元素节点，如果没有tag那么可能是注释节点，不是注释节点，那么就是文本节点，取到vnode.text创建成dom，然后给vnode.elm,然后把vnode.elm插入到parentElm下面refElm之前。通常这里一般不会是comment和text，正常情况下都有tag，下面分析由tag的情况下。
 
     vnode.elm = nodeOps.createElement(tag, vnode)// 这里先把div创建了
     setScope(vnode) // 这里设置了用于scope的css的hash放在节点上作为属性。
+
 tag标签属于父标签，下面开始创建children的dom。
+
 ## patch->createElm->createChildren ##
-createChildren(vnode, children, insertedVnodeQueue)，这3个参数分别是生成的vnode和vnode.children和一个数组。<br/>
+createChildren(vnode, children, insertedVnodeQueue)，这3个参数分别是生成的`vnode`和`vnode.children`和一个数组。<br/>
 
       function createChildren (vnode, children, insertedVnodeQueue) {
 	    if (Array.isArray(children)) {
@@ -386,22 +406,30 @@ createChildren(vnode, children, insertedVnodeQueue)，这3个参数分别是生�
 	      nodeOps.appendChild(vnode.elm, nodeOps.createTextNode(vnode.text))
 	    }
       }
-以上是createChildren的逻辑，遍历children，通常来讲children是一个数组，但是很简单的文本子节点也有可能，如果是文本子节点，就直接在vnode.elm中appedn该文本节点。现在考虑children是个数组的情况。现在遍历到第一个children它是abc。下面看看渲染abc的逻辑。
+以上是createChildren的逻辑，遍历children，通常来讲children是一个数组，但是很简单的文本子节点也有可能，如果是文本子节点，就直接在`vnode.elm`中append该文本节点。现在考虑children是个数组的情况。现在遍历到第一个children它是abc。下面看看渲染abc的逻辑。
+
 ## patch->createElm->createChildren->createElm (abc) ##
+
 createElm的参数为下面，可以看到parentElm换成了vnode.elm,refElm为null，基本上都是按照子Vnode的顺序进行append操作，第一个参数为被插入的子节点的vnode，注意最后一个参数指定为了true，表示不是RootInsert，表示是children的插入。
 
     createElm(children[i], insertedVnodeQueue, vnode.elm, null, true)
 
-下面就是abc的创建过程。首先来看看这一次createElm的操作,由于abc会被createComponent进行拦截，可以认为abc的dom的创建就是靠这个方法，这个方法还实例化了Vue实例。
+下面就是abc的创建过程。首先来看看这一次createElm的操作,由于abc会被`createComponent`进行拦截，可以认为abc的dom的创建就是靠这个方法，同时这个方法还实例化了Vue实例。
+
 ## patch->createElm->createChildren->createElm (abc)-> createComponent ##
+
 注意到这个insertedVnode是在patch的函数中定义的，因此可以认为，在这个vnode渲染完为止，这数组都会传递下去。
 
     createComponent(vnode, insertedVnodeQueue, parentElm, refElm）
-这里vnode为children[i],这里为abc的vnode，insertedVnodeQueue为一个数组，parentElm为根组件vnode的tag创建的dom，refElm为null。abc作为自定义组件，是有data.hook.init这个属性的，然后执行这init
+
+这里vnode为children[i],这里为abc的vnode，insertedVnodeQueue为一个数组，parentElm为根组件vnode的tag创建的dom，refElm为null。abc作为自定义组件，是有`data.hook.init`这个属性的，然后执行这init
 
     i(vnode, false /* hydrating */, parentElm, refElm)
+
 这里执行hook的init方法。
+
 ## patch->createElm->createChildren->createElm (abc)-> createComponent->hook.init ##
+
 执行init方法，init的逻辑是，如果vnode现在没有componentInstance就为这个Vnode创建instance然后再挂载，如果有instance并且还有keepAlive,那么就运行prepatch，这里由于是abc的第一次创建，因此这里会componentInstanceForVnode和挂载。
 
     child = vnode.componentInstance = createComponentInstanceForVnode(
@@ -412,9 +440,10 @@ createElm的参数为下面，可以看到parentElm换成了vnode.elm,refElm为n
       )
     child.$mount(undefined, hydrating)
 
-注意这里vnode是children[i],也就是abc，activeInstance为root，parentElm为root的tempalte对应的vnode的tag建立的dom，ref为null。<br/>
+注意这里vnode是children[i],也就是abc，activeInstance为root，parentElm为root的tempalte对应的vnode的tag建立的dom，ref为null。
 
 ## patch->createElm->createChildren->createElm (abc)-> createComponent->hook.init-> createComponentInstanceForVnode ##
+
 先拿到vnode.componentOptions,这个里面有{Ctor,children,tag,propsData,listener,children}几个属性，该方法首先进行一个option的标准化。
 
       const options: InternalComponentOptions = {
@@ -428,20 +457,30 @@ createElm的参数为下面，可以看到parentElm换成了vnode.elm,refElm为n
 	    _parentElm: parentElm || null,
 	    _refElm: refElm || null
       }
-_isComponent:true,这里手动指定<br/>
-parent:activeInstance,这里为root<br/>
-propsData, _componentTag,_parentListeners,_renderChildren分别为componentOptions的propsData，tag，listeners，children 4个属性。<br/>
-_parentVnode:为abc生成的vnode,这里为什么把它称为parentVnode是因为abc不是个有效的dom标签名，需要的abc组件里面的render产生的最终的dom，相对于abc内部的render，abc可以认为是一个parentVnode的占位符<br/>
-_parentElm：传入的装有abc的外层标签的dom<br/>
-refElm:这里为null<br/>
+
+_isComponent:true,这里手动指定
+
+parent:activeInstance,这里为root
+
+propsData, _componentTag,_parentListeners,_renderChildren分别为componentOptions的propsData，tag，listeners，children 4个属性。
+
+_parentVnode:为abc生成的vnode,这里为什么把它称为parentVnode是因为abc不是个有效的dom标签名，需要的abc组件里面的render产生的最终的dom，相对于abc内部的render，abc可以认为是一个parentVnode的占位符
+
+_parentElm：传入的装有abc的外层标签的dom
+
+refElm:这里为null
+
 初始化完成之后，开始实例化abc了。
 
     return new vnodeComponentOptions.Ctor(options)
 
-在Ctor产生的时候，已经把需要组件自身的一些options已经合并完毕，并且放在了Ctor.options上面，这里传入的options，相当于告诉这个构造器，这个组件的上下文环境是怎样。由于Ctor的函数实现（Sub）与Vue完全一样，因此基本上就只调用了this._init(options)
+在Ctor产生的时候，已经把需要组件自身的一些options已经合并完毕，并且放在了Ctor.options上面，这里传入的options，相当于告诉这个构造器，这个组件的上下文环境是怎样。由于Ctor的函数实现（Sub）与Vue完全一样（子类和父类的关系而已，子类只是扩展了一下属性而已，行为并没有变化），因此基本上就只调用了this._init(options)
+
 # 这里开始abc的初始化 #
+
 #_init(这是Vue.extend得到的函数,跟Vue不是同一个,但是拥有Vue的所有功能,后续的所有初始化的工作和实例方法可以认为都是跟Vue一样的,因为在extend生成Ctor的时候,进行了原型链的绑定)#
-在Vue的构造函数里面，就只有一句话,this._init(options),因此先看看_init里面做了什么。<br/>
+在Vue的构造函数里面，就只有一句话,this._init(options),因此先看看_init里面做了什么。
+
 先拿到组件的实例引用，然后在组件上绑定一个_uid,这个uid会自增，所以每个实例可以通过这个id来区分，设置一个_isVue表示这个对象是Vue实例。
 
     const vm: Component = this
@@ -477,7 +516,8 @@ refElm:这里为null<br/>
 	}
     vm._renderProxy = vm
     vm._self = vm
-上面的代码可以看到基本上就是把creatComponent里面抽取出来的属性，再次并入到abc的构造函数中，这些属性起到了该组件渲染的上下文，dom的上下文的一些信息。然后设置一个_renderProxy。然后开始新一轮的实例的初始化。针对这些parentElm，现在来插播一个东西，就是为什么vue会要求template只能有一个根元素呢，这是因为基于vnode的模型设计，vnode有text，tag，children，三个同级属性，比如存在text，就表示这是一个文本节点，如果有tag，显然就没有text，因为有tag，可以认为是"Element"( 打引号的原因是如果是html原生标签，那么就是element)，因此vnode的结果非常清晰，就是只能有一个父标签，这个tag只能存一个标签名，如果tempalte的根标签，有多个标签同级，那么这个tag的值就不能确定了，最后会什么也进行不下去了。基于单tag，我个人认为还有利于自定义组件的渲染，比如<abc></abc>，我通过这个tag:'abc'，通过这个abc去找component，做到了一一对应，同时abc可以做唯一的parentVnode,不需要管别的同级的标签。
+
+上面的代码可以看到基本上就是把createComponent里面抽取出来的属性，再次并入到abc的构造函数中，这些属性起到了该组件渲染的上下文，dom的上下文的一些信息。然后设置一个`_renderProxy`。然后开始新一轮的实例的初始化。针对这些parentElm，现在来插播一个东西，就是为什么vue会要求template只能有一个根元素呢，这是因为基于vnode的模型设计，vnode有text，tag，children，三个同级属性，比如存在text，就表示这是一个文本节点，如果有tag，显然就没有text，因为有tag，可以认为是"Element"( 打引号的原因是如果是html原生标签，那么就是element)，因此vnode的结构非常清晰，就是只能有一个父标签，这个tag只能存一个标签名，如果tempalte的根标签，有多个标签同级，那么这个tag的值就不能确定了，最后会什么也进行不下去了。基于单tag，我个人认为还有利于自定义组件的渲染，比如`<abc></abc>`，我通过这个tag:'abc'，通过这个abc去找component，做到了一一对应，同时abc可以做唯一的parentVnode,不需要管别的同级的标签。
 ## initLifecycle ##
 拿到$options,这个时候的options，包含了哪些信息，下面来依依列举出来。
 1.Vue构造函数的的options属性。（superOptions）<br/>
@@ -505,7 +545,8 @@ refElm:这里为null<br/>
       if (listeners) {
          updateComponentListeners(vm, listeners)
       }
-不同于根组件，由于根组件只是个div而已，也不能在parentListener,但是abc不是根组件，所以这里为了说明这些逻辑，下面要改下组件模板来说明。前面为了简化为题认为渲染的就是<div><abc></abc></div>,现在到了渲染event了，如果按照这个模板来，是没有listener的，因此这里要根据不同的阶段，为了让代码都跑到位，现在来加一点点event。<div><abc @myEvent = "aaa" @click.native="bbb"></abc></div>,假如我们的模板是这样的，那么实际上这个listener就是:{myEvent:aaa},所以这里带着这个listener对象去updateComponentListeners（）,updateComponentListener的具体细节在单独的event里面写，这里描述一下大概的流程，就是在vm._events上面加入这些属性上面的值，通过this.$emit去调用。具体过去在events里面去写。
+不同于根组件，由于根组件只是个div而已，也不存在parentListener,但是abc不是根组件，所以这里为了说明这些逻辑，下面要改下组件模板来说明。前面为了简化问题认为渲染的就是`<div><abc></abc></div>`,现在到了渲染event了，如果按照这个模板来，是没有`listener`的，因此这里要根据不同的阶段，为了让代码都跑到位，现在来加一点点event。`<div><abc @myEvent = "aaa" @click.native="bbb"></abc></div>`,假如我们的模板是这样的，那么实际上这个listener就是:`{myEvent:aaa}`,所以这里带着这个`listener`对象去`updateComponentListeners（）`,`updateComponentListener`的具体细节在单独的event里面写，这里描述一下大概的流程，就是在`vm._events`上面加入这些属性上面的值，通过`this.$emit`去调用。具体过去在events里面去写。
+
 ## initRender ##
     vm._vnode = null
     vm._staticTrees = mull
@@ -518,7 +559,8 @@ refElm:这里为null<br/>
     const parentData = parentVnode && parentVnode.data
     defineReactive(vm, '$attrs', parentData && parentData.attrs, null, true)
     defineReactive(vm, '$listeners', vm.$options._parentListeners, null, true)
-下面看看render里面做了什么，render显然是处理关于渲染这一部分的东西，比如vnode的渲染，所以会初始化一个_vnode,_staticTrees,拿到abc这个节点vnode，拿到abc这个节点的上下文，也就是root，设置一个空对象给$scopedSlots,我这个版本不支持scopedSlot，关于scopedSlots放在单独的slot里面去分析。然后绑定createElement这2个函数，非要在vm上面绑定，是因为每一个render的上下文都必须是当前实例，然后看parentVnode里面有没有data，有data，然后在vm上面定义2个响应式属性，vm.$attr 能够访问到parentData.attrs,vm.$listeners能够访问到vm.$options._parentListeners。attr是什么，比如id他就是attr，例如如果<abc :bb="ccc"></abc>同时在props中没有定义这个bb，因此这个bb就是attr，{bb:ccc},会放进vm.$attr
+
+下面看看render里面做了什么，render显然是处理关于渲染这一部分的东西，比如vnode的渲染，所以会初始化一个`_vnode`,`_staticTrees`,拿到`abc`这个节点`vnode`，拿到abc这个节点的上下文，也就是root，设置一个空对象给`$scopedSlots`,我这个版本不支持`scopedSlot`，关于`scopedSlots`放在单独的slot里面去分析。然后绑定`createElement`这2个函数，非要在vm上面绑定，是因为每一个render的上下文都必须是当前实例，然后看parentVnode里面有没有data，有data，然后在vm上面定义2个响应式属性，vm.$attr 能够访问到parentData.attrs,vm.$listeners能够访问到vm.`$options._parentListeners`。attr是什么，比如id他就是attr，例如如果`<abc :bb="ccc"></abc>`同时在props中没有定义这个bb，因此这个bb就是attr，{bb:ccc},会放进vm.$attr
 ## callHook(vm, 'beforeCreate') ##
 运行到这里beforeCreate完毕，调用这个钩子。
 ## initInjections ##
@@ -546,7 +588,8 @@ provide就是运行这个函数，或者非函数，建立一个_provide来装pr
     updateComponent = () => {
       vm._update(vm._render(), hydrating)
     }
-跟父组件一样，这里会设置$el,只有根组件这里会有元素，根组件下面的子元素为undefined，然后调用beforeMount,设置watcher的回调，实例化watcher，跟前面一样，实例化watcher，会伴随的回调函数的执行也就是_render和_update。对于_render就是通过abc的template生成的render或者自定义的render，前提是有render，通过render来创建出vnode,创建vnode的时候，会收集这个模板需要的依赖，_update会通过这个vnode来创建对应的dom，render的过程跟root一样，_update这里跟父组件有点不一样，因为挂载的目标元素是undefined。在_update也就是更新dom的前期，会把activeInstance换掉，这里很关键，因为<abc></abc>里面还有可能有<bcd></bcd>这样的组件，比如<abc></abc>的模板是<div><bcd></bcd></div>，而<bcd></bcd>组件的渲染，它的上下文是abc,父组件是abc，组件实例的parent应该是abc的实例，通常赋值都是用activeInstance,将它作为一个渲染的共享变量，标志当前组件的父组件实例,当然对于根组件这activeInstance为null，因此这里activeInstance会赋值为abc的实例，将render后的vnode给vm._vnode,所以对于abc这样的组件，他的_parentVnode为tag:"vue-component-abc",vm._vnode为abc选项中render产生的vnode，注意$vnode为_parentVnode。由于都是第一次更新，因此,prevVnode肯定没有，于是会运行下面的代码:
+
+跟父组件一样，这里会设置$el,只有根组件这里会有元素，根组件下面的子组件渲染时，这里为undefined，然后调用beforeMount,设置watcher的回调，实例化watcher，跟前面一样，实例化watcher，会伴随的回调函数的执行也就是`_render`和`_update`。对于`_render`就是通过abc的template生成的render或者自定义的render，前提是有render，通过render来创建出vnode,创建vnode的时候，会收集这个模板需要的依赖，`_update`会通过这个vnode来创建对应的dom，render的过程跟root一样，`_update`这里跟父组件有点不一样，因为挂载的目标元素是undefined。在`_update`也就是更新dom的前期，会把`activeInstance`换掉，这里很关键，因为`<abc></abc>`里面还有可能有`<bcd></bcd>`这样的组件，比如`<abc></abc>`的模板是`<div><bcd></bcd></div>`，而`<bcd></bcd>`组件的渲染，它的上下文是`abc`,父组件是`abc`，组件实例的parent应该是abc的实例，通常赋值都是用activeInstance,将它作为一个渲染的共享变量，标志当前组件的父组件实例,当然对于根组件这activeInstance为null，因此这里activeInstance会赋值为abc的实例，将render后的vnode给`vm._vnode`,所以对于abc这样的组件，他的`_parentVnode`为tag:"vue-component-abc",`vm._vnode`为abc选项中render产生的`vnode`，注意`$vnode`为`_parentVnode`。由于都是第一次更新，因此,prevVnode肯定没有，于是会运行下面的代码:
 
     if (!prevVnode) {
       // initial render
@@ -562,8 +605,9 @@ provide就是运行这个函数，或者非函数，建立一个_provide来装pr
       vm.$options._parentElm = vm.$options._refElm = null
     }
 
-注意这里跟根组件不同的在于，由于创建abc的实例的时候，给了一些internalComponentOptions,比如_parentElm,这个就是<div\><abc\></abc\></div\>中的<div\></div\>,refElm为null,vm.$el=undefined。下面来运行\_\_patch\_\_。
+注意这里跟根组件不同的在于，由于创建abc的实例的时候，给了一些internalComponentOptions,比如_parentElm,这个就是`<div\><abc\></abc\></div\>`中的`<div\></div\>`,refElm为null,vm.$el=undefined。下面来运行\_\_patch\_\_。
 ## abc组件的patch ##
+
       let isInitialPatch = false
       const insertedVnodeQueue = []
       if (isUndef(oldVnode))  {
@@ -579,21 +623,26 @@ provide就是运行这个函数，或者非函数，建立一个_provide来装pr
     if (createComponent(vnode, insertedVnodeQueue, parentElm, refElm)) {
       return
     }
+
 以上代码由于模板中不存在vue-component（没有data.hook.init），因此这里执行createComponent会为false,所以代码会继续往下走。
 
     const data = vnode.data
     const children = vnode.children
     const tag = vnode.tag
+
 为了简化，针对上面简单模板，data没有，children为一个文本节点vnode，tag为div。
 
     vnode.elm = nodeOps.createElement(tag, vnode)
     setScope(vnode)
+
 以上代码创建了div元素,然后设置了css的scoped的hash
+
     createChildren(vnode, children, insertedVnodeQueue)
     if (isDef(data)) { 
     	invokeCreateHooks(vnode, insertedVnodeQueue)
     }
     insert(parentElm, vnode.elm, refElm)
+
 以上代码拿到带有elm属性的vnode，children，开始创建createChildren。
 
      function createChildren (vnode, children, insertedVnodeQueue) {
@@ -641,7 +690,9 @@ provide就是运行这个函数，或者非函数，建立一个_provide来装pr
 
 
 运行到这里,初始化完毕,运行时的dom专门再去写。
+
 ## 修改属性,触发dom重新渲染的过程 ##
+
 这部分放在这里写的原因,在于前面整理了初始化的脉络,有了这些铺垫，change state的过程就比较容易了。响应式的原理这里不探究，准备单独列出来写,这里只写修改state触发一系列视图修改的过程。当修改一个数据的时候,如果这个数据被视图所依赖,那么这个数据会notify(),通知使用过这个依赖的每个watcher，然后在watcher里面异步跟新视图,通过microTask,Promise.resolve().then（循环运行watcher的run函数）,最终视图dom的更新运行的是绑定在wathcer上面的getter函数，也及时updateComponent。
     
     // watcher中存有一个属性vm,针对vm中的视图的专属watcher
@@ -653,7 +704,7 @@ provide就是运行这个函数，或者非函数，建立一个_provide来装pr
     updateComponent = () => {
           vm._update(vm._render(), hydrating)
     }
-vm._render()通过修改后的数据,生成了新的视图,过程如上面一样，然后把新生成的vnode传给_update()<br/>
+`vm._render()`通过修改后的数据,生成了新的视图,过程如上面一样，然后把新生成的vnode传给`_update()`
 
     const vm = this
     if (vm._isMounted) {
@@ -664,13 +715,18 @@ vm._render()通过修改后的数据,生成了新的视图,过程如上面一样
     const prevActiveInstance = activeInstance
     activeInstance = vm
     vm._vnode = vnode
-拿到老的dom,老的\_vnode,被更新的组件的vm作为activeInstance,之前的存入prevActiveInstance,然后把新生成的vnode赋值给vm.\_vnode
+
+拿到老的dom,老的`_vnode`,被更新的组件的vm作为`activeInstance`,之前的存入`prevActiveInstance`,然后把新生成的`vnode`赋值给`vm._vnode`
 
     vm.$el = vm.__patch__(prevVnode, vnode)
+
 下面分析一下patch这一次做了什么
+
     patchVnode(oldVnode, vnode, insertedVnodeQueue, removeOnly)
     invokeInsertHook(vnode, insertedVnodeQueue, isInitialPatch)
+
 patch的内容这里就不分析了，这个是diff算法的内容，专门抽取一章出来分析,通过patch能够在新的vnode的基础上去改造旧的dom，改造完毕，调用insertHook。最后注意下这里：
+
     if (prevEl) {
       prevEl.__vue__ = null
     }
@@ -682,10 +738,13 @@ patch的内容这里就不分析了，这个是diff算法的内容，专门抽�
     if (vm.$vnode && vm.$parent && vm.$vnode === vm.$parent._vnode) {
       vm.$parent.$el = vm.$el
     }
-前面2个if表示,如果老dom存在把\_\_vue\_\_设置为null,在最新的元素节点上给一个vm的引用叫\_\_vue\_\_，updated hook,在flushQueue的时候进行调用,在scheduler.js中，第三句话的意思是:
+
+前面2个if表示,如果老dom存在把`__vue__`设置为null,在最新的元素节点上给一个vm的引用叫`__vue__`，updated hook,在flushQueue的时候进行调用,在scheduler.js中，第三句话的意思是:
 
     <aaa><abc><bbb></bbb></abc></aaa>
 
 出现了这种情况,aaa会有一个vm,abc会有一个vm,bbb也会有个vm,但是它们的最终渲染的dom都是bbb的render对应的dom,因此它们3个的$el应该一样。
 
     vm.$vnode && vm.$parent && vm.$vnode === vm.$parent._vnode
+
+简而言之，有了新老的vnode,最终就是通过diff算法，来影响dom，然后视图就更新了。

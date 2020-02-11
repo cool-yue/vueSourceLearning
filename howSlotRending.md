@@ -128,7 +128,9 @@ fallback为默认的slot输出，它会放在renderSlot的第二个参数，当�
     // 抽取出propsData，children，Ctor
     componentInstanceOptions:{Ctor,tag,children:[<div>aaa</div>的vnode]}
 Ctor中有template，children中就是aaa的children的vnode，在aaa组件渲染的时候会先去实例化aaa，在实例化的过程中，children和context会作为传入的参数，来渲染$slot,这里会变成下面这样
+
     $slot = {"default":[<div>aaa</div>的vnode]}
+
 最后在aaa进行挂载的时候，会把aaa的template解析成render函数
 
     假定aaa的tempalte为<div><slot></slot></div>

@@ -1,12 +1,14 @@
 ## props ##
 props在属于initState这一部分的一块内容，其余几个内容分别是data，methods，watch，computed，由于data跟视图有很大的联系，准备抽取出来把data，Dep，Watch放在一起写，而props在vue的官方有很长的篇幅讲解用法，因此props也单独拎出来写。
 ## props模板渲染 为什么v-bind="xxx"可以将xxx中的属性直接并入成为对应的props##
+
     var template = "<div v-bind='ccc' :myName='jim' myAge='18' :my-height='177'  myGod my-shoe id='mmmm' ></div>";
     with(this){return _c('div',_b({attrs:{"myName":jim,"myAge":"18","my-height":177，myGod："",my-shoe:"","id":"mmmm"}},'div',ccc,false))}
     Vue.prototype._b = bindObjectProps;
     // 解析为_b({attrs:{"myName":jim,"myAge":"18","my-height":177,myGod："",my-shoe:"","id":"mmmm"}},'div',ccc,false);
     // 如果没有v-bind就为with(this){return _c('div',{attrs:{"myName":jim,"myAge":"18","my-height":177,"id":"mmmm"}})}
     // 注意v-bind不可以2次声明，这样会报错
+
 针对上面的模板，生成的渲染函数为下面的结果，其中_b为bindObjectProps，可以看到在render模板的时候，props全部放进了attrs这个对象里面（后面会抽取出来），下面看看bindObjectProps做了什么。可以知道带":"和不带":"的区别，带":"最终会解析成例如:aaa="xxx"，会解析成aaa:xxx,而不带点解析成aaa:"xxx"，最终这些都是js代码，不带引号就是变量，带引号就是字符串，所以不带":"的永远是字符串
 
      function bindObjectProps (
