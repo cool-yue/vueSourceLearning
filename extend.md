@@ -1,5 +1,6 @@
 ## extend ##
-extend是vue中非常重要的一个全局方法，所有的vue-component全部通过它来构建构造函数，并且也会通过它来存入对应的options，并且还会父元素的mergeOptions，视图的最终渲染，是一个树形结构，父子之间有着千丝万缕的关系，下面来分析一下涉及到constructor的一些东西，vue的源码通常称为ctor。<br/>
+extend是vue中非常重要的一个全局方法，所有的`vue-component`全部通过它来构建构造函数，并且也会通过它来存入对应的`options`，并且还会父元素的`mergeOptions`，视图的最终渲染，是一个树形结构，父子之间有着千丝万缕的关系，下面来分析一下涉及到constructor的一些东西，vue的源码通常称为ctor。
+
 ## extend（）方法 ##
 Vue.extend作为全局api基本上是创建一个特定组件的构造器，下面来看看具体过程。
 在初始化的时候每个构造器都有个id，其中给Vue这个最原始的构造器cid为0，然后设置一个局部变量cid=1产生一个闭包，来随着构造器的产生来进行自增。
