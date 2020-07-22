@@ -20,8 +20,8 @@
         //var template = "<div style='display:none;color:red;' :style='[abc,bbb]'></div>"
         //var template = "<option disabled onclick='aaa()' innerHTML='aaa' id='asdas'>Select</option>";
        // var template = "<transition name='fade'><div>111</div></transition>";
-       var template = "<component :is='aaa' ></component>";
-       //var template = "<keep-alive><div></div></keep-alive>";
+       var template3 = "<component :is='aaa' ></component>";
+       var template= "<keep-alive><div></div></keep-alive>";
        var template2 = `<transition name='fade'
                                     v-on:before-enter="beforeEnter"
                                     v-on:enter="enter"
@@ -31,6 +31,7 @@
                                     v-on:leave="leave"
                                     v-on:after-leave="afterLeave"
                                     v-on:leave-cancelled="leaveCancelled"><div>111</div></transition>`;
+        var template4 = "<keep-alive><component :is='aaa' ></component></keep-alive>";
         //var template = `<abc @click="aaa" @click.native="bbb"></abc>`;
  //"with(this){return _c('div',{staticClass:"aaa",class:bbb},[_c('p',[_v(_s(mes))]),_c('div',[_v("abc")]),_c('bb')],1)}"
         var render = Vue.compile(template);
@@ -42,6 +43,12 @@
         console.log(render2);
         console.log(render2.render);
         console.log(render2.staticRenderFns[0]);
+
+        var render3 = Vue.compile(template3);
+        console.log(render3.render);
+
+        var render4 = Vue.compile(template4);
+        console.log(render4.render);
     /*
       Vue.prototype._o = markOnce;
       Vue.prototype._n = toNumber;

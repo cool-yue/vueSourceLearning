@@ -129,7 +129,7 @@ Vue.use实际上执行传入的函数或者传入的对象上面的install函数
       }
     })
 
-如上面的代码，在store中存入了状态state:{count: 0},然后定义了一个mutations,里面有修改state的方法，这个示例的过程就是点击+按钮，然后触发store.commit('increment'),然后在store中运行increment，然后state.count++操作，然后视图中的count会加1，然后显示。这上面需要分析的有2个部分，一个是new Vuex.store做了什么，然后commit做了什么。
+如上面的代码，在store中存入了状态state:{count: 0},然后定义了一个mutations,里面有修改state的方法，这个示例的过程就是点击+按钮，然后触发`store.commit('increment')`,然后在store中运行increment，然后state.count++操作，然后视图中的count会加1，然后显示。这上面需要分析的有2个部分，一个是new Vuex.store做了什么，然后commit做了什么。
     // 首先store接收一个options
     Class store {constructor(options) {}}
      
@@ -173,8 +173,8 @@ Vue.use实际上执行传入的函数或者传入的对象上面的install函数
 	    this.state = (typeof rawState === 'function' ? rawState() : rawState) || {}
       }
 
-上面代码就是把options保存在了一个root对象中，也就是this.\_modules.\_root,options为rawModule属性，state为options中的state。<br/>
-我们这里用到的有2个，一个是this._modules.root.state = {count:0},this._modules.root._rawModule = {state:xxx,mutations:xxxx}
+上面代码就是把options保存在了一个root对象中，也就是`this._modules.root,options`为rawModule属性，state为options中的state。<br/>
+我们这里用到的有2个，一个是`this._modules.root.state` = `{count:0}`,`this._modules.root._rawModule` = `{state:xxx,mutations:xxxx}`
     
 commit的代码如下：
 
