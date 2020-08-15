@@ -216,9 +216,9 @@ intallModule为初始化store的一些选项，这里示例只传入了mutations
     	handler(local.state, payload)
       })
     }
-第一个参数是store对象，第二个参数是mutations的key，第三个参数是mutations的值（如上面的increment），第四个参数这里不管，上面做的事情就是把，store初始化的_mutations属性存入options中的mutations属性，不同点在于_mutations中的值为一个数组，并把对应的方法体，push进去，比如increment() function() {},变成了store._mutations:{incrment:[fn]},并且把handler的第一个参数传入state，第二个传入用户给的payload。所这样commit的逻辑就非常清晰了。
+第一个参数是store对象，第二个参数是mutations的key，第三个参数是mutations的值（如上面的increment），第四个参数这里不管，上面做的事情就是把，store初始化的`_mutations`属性存入options中的mutations属性，不同点在于`_mutations`中的值为一个数组，并把对应的方法体，push进去，比如`increment() function() {}`,变成了`store._mutations:{incrment:[fn]}`,并且把handler的第一个参数传入state，第二个传入用户给的payload。所这样commit的逻辑就非常清晰了。
 
-commit(type)就是在store中拿到_mutations[type],通常这是一个函数或者是个函数数组，每次调用的时候给定一个字段叫isCommitting。下面看看resetStoreVM(this, state)做了什么。
+commit(type)就是在store中拿到`_mutations[type]`,通常这是一个函数或者是个函数数组，每次调用的时候给定一个字段叫isCommitting。下面看看resetStoreVM(this, state)做了什么。
 
     function resetStoreVM (store, state, hot) { 
 	    const oldVm = store._vm

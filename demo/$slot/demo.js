@@ -56,4 +56,12 @@ app.$mount(document.getElementById("app"));
 
 
 
+// let string1 = "<li>abc</li>";
+
+let string1 = "<img src='aaa/aaa' />";
+
+console.log(string1,  Vue.compile(string1).render.call(app));
+
+
+
 
