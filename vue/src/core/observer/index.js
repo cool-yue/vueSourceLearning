@@ -158,6 +158,21 @@ function copyAugment (target: Object, src: Object, keys: Array<string>) {
  * returns the new observer if successfully observed,
  * or the existing observer if the value already has one.
  */
+
+ // 每一次set之后,都需要重新observe一下,这里分为3种情况
+ // 原始值修改 -> 那么就！isObject返回了
+
+ // 如果是对象修改，{a:1, b:2, __ob__} -> {a:3, b:2, __ob__},修改了a,但是以前创建的__ob__没有丢失
+ // 这里就不单独再去Observe了
+
+ // 如果整个对象覆盖, {a:1, b:2, __ob__} -> {a:1, b:2},虽然没有值修改，但是依旧会来一次Observe(),在对象
+ // 上创建__ob__,同时把a和b重新收集依赖。
+
+ // 那么以前收集的a和b会不会被清理？答案是会，因为每一次收集依赖，watcher都会更新一遍
+ // render()里面所有的依赖都会再次被收集一次
+ // newDeps -> Deps , 原始Deps清理
+ // newDepIds -> depIds ，原始depIds清理
+
 export function observe (value: any, asRootData: ?boolean): Observer | void {
   // 如果不是对象,那么就返回
   if (!isObject(value)) {

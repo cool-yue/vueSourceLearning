@@ -9,7 +9,7 @@ props在属于initState这一部分的一块内容，其余几个内容分别是
     // 如果没有v-bind就为with(this){return _c('div',{attrs:{"myName":jim,"myAge":"18","my-height":177,"id":"mmmm"}})}
     // 注意v-bind不可以2次声明，这样会报错
 
-针对上面的模板，生成的渲染函数为下面的结果，其中_b为bindObjectProps，可以看到在render模板的时候，props全部放进了attrs这个对象里面（后面会抽取出来），下面看看bindObjectProps做了什么。可以知道带":"和不带":"的区别，带":"最终会解析成例如:aaa="xxx"，会解析成aaa:xxx,而不带点解析成aaa:"xxx"，最终这些都是js代码，不带引号就是变量，带引号就是字符串，所以不带":"的永远是字符串
+针对上面的模板，生成的渲染函数为下面的结果，其中_b为bindObjectProps，可以看到在render模板的时候，props全部放进了attrs这个对象里面（后面会抽取出来），下面看看bindObjectProps做了什么。可以知道带`:`和不带`:`的区别，带`:`最终会解析成例如`:aaa="xxx"`，会解析成`aaa:xxx`,而不带点解析成`aaa:"xxx"`，最终这些都是js代码，不带引号就是变量，带引号就是字符串，所以不带`:`的永远是字符串
 
      function bindObjectProps (
       data: any,
@@ -182,7 +182,7 @@ props这个属性在子组件中其实跟data没有太大区别，在子组件�
     props:{
         aaa:Number
     }
-在props中找到了aaa，发现在attr中也有，然后就抽取attr中的aaa,attr就变成了{},把抽取的属性放到一个propsData属性中，作为componentOptions，dom更新的时候进行实例化使用。为什么父组件修改可以让子组件也修改呢？父组件的_render要执行这个_c("div",[_c("abc",attr:{"aaa":bbb})]),并且bbb属于data，当bbb修改的时候，bbb中的dep会进行notify到watcher中去执行updateComponent操作，首先要_render，那么此时加入this.bbb改成了5，那么这个render表达式就变成了下面这样:
+在props中找到了aaa，发现在attr中也有，然后就抽取attr中的aaa,attr就变成了{},把抽取的属性放到一个propsData属性中，作为componentOptions，dom更新的时候进行实例化使用。为什么父组件修改可以让子组件也修改呢？父组件的`_render`要执行这个`_c("div",[_c("abc",attr:{"aaa":bbb})])`,并且bbb属于data，当bbb修改的时候，bbb中的dep会进行notify到watcher中去执行updateComponent操作，首先要_render，那么此时加入this.bbb改成了5，那么这个render表达式就变成了下面这样:
 
     _c("div",[_c("abc",attr:{"aaa":5})])
 

@@ -58,8 +58,11 @@ app.$mount(document.getElementById("app"));
 
 // let string1 = "<li>abc</li>";
 
-let string1 = "<img src='aaa/aaa' />";
+//let string1 = "<transition name='fade'><my-li><h1 slot='header'></h1><div>I am the default</div></my-li></transition>";
+let string1 = "<a :aaa='1' class='ddd' cbd='ddd'></a>";
 
+let vnode = Vue.compile(string1).render.call(app);
+console.log(Vue.compile(string1).render);
 console.log(string1,  Vue.compile(string1).render.call(app));
 
 

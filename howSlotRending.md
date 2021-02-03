@@ -1,4 +1,4 @@
-slot和props基本上是vue自定义组件的精髓，下面通过原来的角度来分析下slot如何渲染，以及scopedSlot如何渲染。由于我分析的vue基于2.4貌似不支持scopedSlot，但是这篇文章还是去分析scopedSlot。首先来看看slot的用法。
+slot和props基本上是vue自定义组件的精髓，下面通过源码的角度来分析下slot如何渲染，以及scopedSlot如何渲染。由于我分析的vue基于2.4貌似不支持scopedSlot，但是这篇文章还是去分析scopedSlot。首先来看看slot的用法。
 ## slot 和 具名slot 渲染前奏##
 实际上默认slot就是名字为default的具名slot，要分析slot，得首先从render函数开始。
 
@@ -11,7 +11,7 @@ slot和props基本上是vue自定义组件的精髓，下面通过原来的角�
 
     Vue.prototype._v = createTextVNode
 
-如上面的代码,对于vue的一个组件来说，假如解析第一条，这个模板，第一条生成的render如下面那行，基本中间的div渲染成aaa vnode的children，根据vnode生成规则，在生成aaa的时候，aaa是一个vue-component，它不是一个html原始标签，所以会去aaa渲染的上下文中，去找到components的aaa组件的options，然后通过createComponent生成vnode，而不是通过new Vnode来生成。
+如上面的代码,对于vue的一个组件来说，假如解析第一条，这个模板，第一条生成的render如下面那行，`中间的div`渲染成`aaa vnode`的`children`，根据`vnode`生成规则，在生成`aaa`的时候，`aaa`是一个`vue-component`，它不是一个html原始标签，所以会去aaa渲染的上下文中，去找到components的aaa组件的options，然后通过createComponent生成vnode，而不是通过new Vnode来生成。
 
     vnode = createComponent(Ctor, data, context, children, tag)
 Ctor为aaa组件的options，context为aaa组件渲染的上下文，children为aaa的children，tag为aaa，data为VnodeData，下面来看看具体的过程。

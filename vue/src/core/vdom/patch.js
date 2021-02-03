@@ -690,7 +690,7 @@ export function createPatchFunction (backend) {
       (isTrue(vnode.isCloned) || isTrue(vnode.isOnce))
     ) {
       vnode.componentInstance = oldVnode.componentInstance
-      
+
     }
 
     // 前面的条件都不满足,ok,现在开始patch
@@ -719,7 +719,6 @@ export function createPatchFunction (backend) {
       // 所以先把cbs中的全部的update调用一遍
       // 然后再调用组件hook中的update
       // 这里触发一些钩子啥的
-       
       // 注意这里vnode的值已经变成了没有instance的_vnode,也就是原生html模板打头的
 
       // 由于这里已经是原生dom的情况了,所以可以调用cbs.update

@@ -158,6 +158,7 @@ function callActivatedHooks (queue) {
 // 如果在flushing,从queue的队尾开始找,按顺序插入到合适的位置
 // 因为在flushing的时候,queue队列已经根据id排好顺序了
 
+// 2021新的感悟
 // flushing的时候为什么要清空has[id] = null
 // 想像一个情况,如果一个组件在更新的时候某些状态发生了改变,那么这个组件的watcher
 // 会被推到这个queue中,但是同时这个属性改变导致子组件的改变，子组件的watcher也要被push进去
@@ -173,6 +174,17 @@ function callActivatedHooks (queue) {
 // 并将id放入一个伪set里面,防止重复
 // 然后如果在flushing过程中有watcher进来,也会放在合适的位置
 // 再flushing的时候waiting = true
+
+// 这个位置很关键, 之所以vue可以vnode可以一次更新多次属性的改变就是因为一个视图的watcher
+// 比如一个模板`<div>{{a}}</div>`,a从1变到2再变到3,其实要经历过3次,dep.notify(),但是
+// 如下代码由于watcher收集会去重,所以导致实际上3次notify,最终的更新queue中只会有一个watcher
+// 为什么这样可以呢？这些对于a的修改是同步操作,a通知的watcher()实际上会在 nextTick去更新,nextTick
+// 的时候,对于同步操作来说,a的值直接就是3
+
+
+// 只放入到队列中一次
+// 并且按照id的从小到大的顺序(从父到子),为什么从父到子,是因为父组件可以v-if掉子组件,子组件压根不渲染
+// 所以要从父组件开始
 export function queueWatcher (watcher: Watcher) {
   const id = watcher.id
   if (has[id] == null) {
